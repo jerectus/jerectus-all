@@ -21,7 +21,7 @@ public class Try {
     public static <T, R> Function<T, R> with(ThrowableFunction<T, R> fn, BiFunction<Exception, T, R> onCatch) {
         return arg -> {
             try {
-                return fn.apply(arg);
+                return fn.applyEx(arg);
             } catch (Exception e) {
                 return onCatch.apply(e, arg);
             }
@@ -36,7 +36,7 @@ public class Try {
             BiFunction<Exception, Object[], R> onCatch) {
         return (arg1, arg2) -> {
             try {
-                return fn.apply(arg1, arg2);
+                return fn.applyEx(arg1, arg2);
             } catch (Exception e) {
                 return onCatch.apply(e, new Object[] { arg1, arg2 });
             }
@@ -50,7 +50,7 @@ public class Try {
     public static <R> Supplier<R> with(ThrowableSupplier<R> fn, Function<Exception, R> onCatch) {
         return () -> {
             try {
-                return fn.get();
+                return fn.getEx();
             } catch (Exception e) {
                 return onCatch.apply(e);
             }
