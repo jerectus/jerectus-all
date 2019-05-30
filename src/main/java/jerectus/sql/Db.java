@@ -17,6 +17,7 @@ import jerectus.sql.internal.TableMeta;
 import jerectus.sql.parser.SqlParser;
 import jerectus.sql.template.SqlTemplate;
 import jerectus.util.Sys;
+import jerectus.util.Try;
 import jerectus.util.function.ThrowableConsumer;
 import jerectus.util.logging.Logger;
 
@@ -27,28 +28,16 @@ public class Db implements AutoCloseable {
 
     Db(Connection conn) {
         this.conn = conn;
-        try {
-            conn.setAutoCommit(false);
-        } catch (SQLException e) {
-            throw Sys.asRuntimeException(e);
-        }
+        Try.run(() -> conn.setAutoCommit(false));
     }
 
     public static Db open(String url, String user, String password) {
-        try {
-            return new Db(DriverManager.getConnection(url, user, password));
-        } catch (SQLException e) {
-            throw Sys.asRuntimeException(e);
-        }
+        return Try.get(() -> new Db(DriverManager.getConnection(url, user, password)));
     }
 
     @Override
     public void close() {
-        try {
-            conn.close();
-        } catch (SQLException e) {
-            throw Sys.asRuntimeException(e);
-        }
+        Try.run(() -> conn.close());
     }
 
     public Connection getConnection() {
