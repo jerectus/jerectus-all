@@ -27,7 +27,7 @@ dependencies {
 
     testImplementation 'junit:junit:4.12'
 
-    runtime fileTree(dir: 'src/main/java', include: '**/*')
+    //runtime fileTree(dir: 'src/main/java', include: '**/*')
 }
 
 // Define the main class for the application

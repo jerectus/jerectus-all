@@ -1,6 +1,14 @@
 package jerectus.util.function;
 
+import java.util.function.BiConsumer;
+
+import jerectus.util.Try;
+
 @FunctionalInterface
-public interface ThrowableBiConsumer<T1, T2> {
-    void accept(T1 arg1, T2 arg2) throws Exception;
+public interface ThrowableBiConsumer<T, U> extends BiConsumer<T, U> {
+    void acceptEx(T t, U u) throws Exception;
+
+    default void accept(T t, U u) {
+        Try.run(() -> acceptEx(t, u));
+    }
 }

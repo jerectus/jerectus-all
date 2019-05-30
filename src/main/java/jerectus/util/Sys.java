@@ -1,15 +1,25 @@
 package jerectus.util;
 
 import java.lang.reflect.Constructor;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Sys {
+    public static <T> boolean eq(T a, T b) {
+        if (a == b)
+            return true;
+        if (a == null || b == null)
+            return false;
+        return a.equals(b);
+    }
 
     public static boolean isEmpty(String s) {
         return s == null || s.isEmpty();
@@ -47,12 +57,18 @@ public class Sys {
         throw e instanceof RuntimeException ? (RuntimeException) e : new RuntimeException(e);
     }
 
-    public <T> T newInstance(Constructor<T> c) {
+    public static <T> T newInstance(Constructor<T> c) {
         return Try.get(() -> c.newInstance());
     }
 
-    public <T> T newInstance(Class<T> clazz) {
+    public static <T> T newInstance(Class<T> clazz) {
         return Try.get(() -> newInstance(clazz.getConstructor()));
+    }
+
+    public static Map<String, Object> populate(Object bean) {
+        var map = new LinkedHashMap<String, Object>();
+        BeanProperty.getProperties(bean.getClass()).forEach(p -> map.put(p.getName(), p.get(bean)));
+        return map;
     }
 
     public static String replace(String text, Pattern ptn, Function<Matcher, String> fn) {
@@ -75,6 +91,37 @@ public class Sys {
     @SuppressWarnings("unchecked")
     public static <T> T cast(Object value) {
         return (T) value;
+    }
+
+    public static <T> void addAll(Collection<T> c, T[] values) {
+        for (var value : values) {
+            c.add(value);
+        }
+    }
+
+    public static String repeat(String s, int n, String delim) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < n; i++) {
+            if (i > 0) {
+                sb.append(delim);
+            }
+            sb.append(s);
+        }
+        return sb.toString();
+    }
+
+    public static <T> String join(Iterable<T> o, String delim, Function<T, String> fn) {
+        StringBuilder sb = new StringBuilder();
+        boolean[] first = { true };
+        for (var it : o) {
+            if (first[0]) {
+                first[0] = false;
+            } else {
+                sb.append(delim);
+            }
+            sb.append(fn.apply(it));
+        }
+        return sb.toString();
     }
 
     @SuppressWarnings("unchecked")
@@ -115,5 +162,20 @@ public class Sys {
                 return enm.nextElement();
             }
         });
+    }
+
+    public static <T> Iterable<T> each(Object o) {
+        if (o == null)
+            return cast(Collections.EMPTY_LIST);
+        if (o instanceof Iterable) {
+            return cast(o);
+        }
+        if (o instanceof Map) {
+            return cast(((Map<?, ?>) o).entrySet());
+        }
+        if (isArray(o)) {
+            return new ArrayIterable<T>(o);
+        }
+        return cast(Arrays.asList(o));
     }
 }

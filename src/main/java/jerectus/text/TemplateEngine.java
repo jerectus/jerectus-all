@@ -1,6 +1,5 @@
 package jerectus.text;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -28,7 +27,7 @@ public class TemplateEngine {
     }
 
     private Function<String, String> preprocessor = s -> s;
-    private LRUMap<String, Template> scriptCache = new LRUMap<>();
+    private LRUMap<String, Template> templateCache = new LRUMap<>();
 
     public TemplateEngine preprocessor(Function<String, String> preprocessor) {
         this.preprocessor = preprocessor;
@@ -36,7 +35,7 @@ public class TemplateEngine {
     }
 
     public Template getTemplate(Path path) {
-        return scriptCache.computeIfAbsent(path.toString(), key -> createTemplate(path));
+        return templateCache.computeIfAbsent(path.toString(), key -> createTemplate(path));
     }
 
     public Template createTemplate(Path path, String source) {
