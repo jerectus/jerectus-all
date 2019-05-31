@@ -112,10 +112,10 @@ public class Sys {
 
     public static <T> String join(Iterable<T> o, String delim, Function<T, String> fn) {
         StringBuilder sb = new StringBuilder();
-        boolean[] first = { true };
+        boolean first = true;
         for (var it : o) {
-            if (first[0]) {
-                first[0] = false;
+            if (first) {
+                first = false;
             } else {
                 sb.append(delim);
             }
