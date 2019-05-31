@@ -5,7 +5,7 @@ import java.util.function.Function;
 import jerectus.util.Try;
 
 @FunctionalInterface
-public interface ThrowableFunction<T, R> extends Function<T, R> {
+public interface ThrowingFunction<T, R> extends Function<T, R> {
     R applyEx(T arg) throws Exception;
 
     default R apply(T arg) {

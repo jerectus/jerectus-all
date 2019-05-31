@@ -6,19 +6,19 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import jerectus.util.function.ThrowableBiConsumer;
-import jerectus.util.function.ThrowableBiFunction;
-import jerectus.util.function.ThrowableConsumer;
-import jerectus.util.function.ThrowableFunction;
-import jerectus.util.function.ThrowableRunnable;
-import jerectus.util.function.ThrowableSupplier;
+import jerectus.util.function.ThrowingBiConsumer;
+import jerectus.util.function.ThrowingBiFunction;
+import jerectus.util.function.ThrowingConsumer;
+import jerectus.util.function.ThrowingFunction;
+import jerectus.util.function.ThrowingRunnable;
+import jerectus.util.function.ThrowingSupplier;
 
 public class Try {
-    public static <T, R> Function<T, R> with(ThrowableFunction<T, R> fn) {
+    public static <T, R> Function<T, R> to(ThrowingFunction<T, R> fn) {
         return fn;
     }
 
-    public static <T, R> Function<T, R> with(ThrowableFunction<T, R> fn, BiFunction<Exception, T, R> onCatch) {
+    public static <T, R> Function<T, R> to(ThrowingFunction<T, R> fn, BiFunction<Exception, T, R> onCatch) {
         return arg -> {
             try {
                 return fn.applyEx(arg);
@@ -28,11 +28,11 @@ public class Try {
         };
     }
 
-    public static <T, U, R> BiFunction<T, U, R> with(ThrowableBiFunction<T, U, R> fn) {
+    public static <T, U, R> BiFunction<T, U, R> to(ThrowingBiFunction<T, U, R> fn) {
         return fn;
     }
 
-    public static <T, U, R> BiFunction<T, U, R> with(ThrowableBiFunction<T, U, R> fn,
+    public static <T, U, R> BiFunction<T, U, R> to(ThrowingBiFunction<T, U, R> fn,
             BiFunction<Exception, Object[], R> onCatch) {
         return (arg1, arg2) -> {
             try {
@@ -43,11 +43,11 @@ public class Try {
         };
     }
 
-    public static <R> Supplier<R> with(ThrowableSupplier<R> fn) {
+    public static <R> Supplier<R> to(ThrowingSupplier<R> fn) {
         return fn;
     }
 
-    public static <R> Supplier<R> with(ThrowableSupplier<R> fn, Function<Exception, R> onCatch) {
+    public static <R> Supplier<R> to(ThrowingSupplier<R> fn, Function<Exception, R> onCatch) {
         return () -> {
             try {
                 return fn.getEx();
@@ -57,19 +57,19 @@ public class Try {
         };
     }
 
-    public static <T> Consumer<T> with(ThrowableConsumer<T> fn) {
+    public static <T> Consumer<T> to(ThrowingConsumer<T> fn) {
         return fn;
     }
 
-    public static <T, U> BiConsumer<T, U> with(ThrowableBiConsumer<T, U> fn) {
+    public static <T, U> BiConsumer<T, U> to(ThrowingBiConsumer<T, U> fn) {
         return fn;
     }
 
-    public static Runnable with(ThrowableRunnable fn) {
+    public static Runnable to(ThrowingRunnable fn) {
         return fn;
     }
 
-    public static <T> T get(ThrowableSupplier<T> fn) {
+    public static <T> T get(ThrowingSupplier<T> fn) {
         try {
             return fn.getEx();
         } catch (Exception e) {
@@ -77,7 +77,7 @@ public class Try {
         }
     }
 
-    public static void run(ThrowableRunnable fn) {
+    public static void run(ThrowingRunnable fn) {
         try {
             fn.runEx();
         } catch (Exception e) {

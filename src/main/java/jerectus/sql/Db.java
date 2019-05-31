@@ -18,7 +18,7 @@ import jerectus.sql.parser.SqlParser;
 import jerectus.sql.template.SqlTemplate;
 import jerectus.util.Sys;
 import jerectus.util.Try;
-import jerectus.util.function.ThrowableConsumer;
+import jerectus.util.function.ThrowingConsumer;
 import jerectus.util.logging.Logger;
 
 public class Db implements AutoCloseable {
@@ -132,7 +132,7 @@ public class Db implements AutoCloseable {
         }
     }
 
-    public int execute(ThrowableConsumer<SqlBuilder<?>> cn) {
+    public int execute(ThrowingConsumer<SqlBuilder<?>> cn) {
         var sb = new SqlBuilder<Object>(this);
         cn.accept(sb);
         return execute(sb.toSQL(), sb.getParameters());
@@ -202,13 +202,13 @@ public class Db implements AutoCloseable {
         return execute("update " + table.name + " set " + set + " where " + where, allParams);
     }
 
-    public int update(Class<?> clazz, ThrowableConsumer<Map<String, Object>> cn, String where, Object... params) {
+    public int update(Class<?> clazz, ThrowingConsumer<Map<String, Object>> cn, String where, Object... params) {
         var values = new LinkedHashMap<String, Object>();
         cn.accept(values);
         return update(clazz, values, where, params);
     }
 
-    public <T> int update(T entity, ThrowableConsumer<T> cn) {
+    public <T> int update(T entity, ThrowingConsumer<T> cn) {
         var table = mdm.getTableMeta(entity.getClass());
         var ids = table.getIdValues(entity);
         var before = table.toMap(entity);

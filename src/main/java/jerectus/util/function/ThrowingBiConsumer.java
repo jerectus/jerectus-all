@@ -5,7 +5,7 @@ import java.util.function.BiConsumer;
 import jerectus.util.Try;
 
 @FunctionalInterface
-public interface ThrowableBiConsumer<T, U> extends BiConsumer<T, U> {
+public interface ThrowingBiConsumer<T, U> extends BiConsumer<T, U> {
     void acceptEx(T t, U u) throws Exception;
 
     default void accept(T t, U u) {

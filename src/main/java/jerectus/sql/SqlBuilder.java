@@ -11,8 +11,8 @@ import jerectus.sql.annotation.Query;
 import jerectus.sql.internal.TableMeta;
 import jerectus.util.BeanProperty;
 import jerectus.util.Sys;
-import jerectus.util.function.ThrowableBiConsumer;
-import jerectus.util.function.ThrowableConsumer;
+import jerectus.util.function.ThrowingBiConsumer;
+import jerectus.util.function.ThrowingConsumer;
 
 public class SqlBuilder<T> {
     static class TableInfo {
@@ -186,7 +186,7 @@ public class SqlBuilder<T> {
         return append("in (" + Sys.repeat("?", params.length, ", ") + ")");
     }
 
-    public SqlBuilder<T> in(ThrowableConsumer<SqlBuilder<?>> cn) {
+    public SqlBuilder<T> in(ThrowingConsumer<SqlBuilder<?>> cn) {
         SqlBuilder<?> subquery = new SqlBuilder<Object>(db, null, null);
         cn.accept(subquery);
         return append("in (" + subquery + ")");
@@ -231,7 +231,7 @@ public class SqlBuilder<T> {
         return append(sql);
     }
 
-    public SqlBuilder<T> with(ThrowableConsumer<SqlBuilder<T>> cn) {
+    public SqlBuilder<T> with(ThrowingConsumer<SqlBuilder<T>> cn) {
         cn.accept(this);
         return this;
     }
@@ -272,11 +272,11 @@ public class SqlBuilder<T> {
         return execute().limit(offset, limitRows);
     }
 
-    public void forEach(ThrowableConsumer<T> cn) {
+    public void forEach(ThrowingConsumer<T> cn) {
         execute().forEach(cn);
     }
 
-    public void forEach(ThrowableBiConsumer<T, SqlQueryResult> cn) {
+    public void forEach(ThrowingBiConsumer<T, SqlQueryResult> cn) {
         execute().forEach(cn);
     }
 
