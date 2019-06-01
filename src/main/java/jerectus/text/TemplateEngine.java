@@ -14,7 +14,6 @@ import org.apache.commons.collections4.map.LRUMap;
 import org.apache.commons.jexl3.JexlBuilder;
 import org.apache.commons.jexl3.JexlEngine;
 
-import jerectus.util.PatternMatcher;
 import jerectus.util.Sys;
 import jerectus.util.Try;
 
