@@ -6,82 +6,74 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import jerectus.util.function.ThrowingBiConsumer;
-import jerectus.util.function.ThrowingBiFunction;
-import jerectus.util.function.ThrowingConsumer;
-import jerectus.util.function.ThrowingFunction;
-import jerectus.util.function.ThrowingRunnable;
-import jerectus.util.function.ThrowingSupplier;
+import jerectus.util.function.TryBiConsumer;
+import jerectus.util.function.TryBiFunction;
+import jerectus.util.function.TryConsumer;
+import jerectus.util.function.TryFunction;
+import jerectus.util.function.TryRunnable;
+import jerectus.util.function.TrySupplier;
 
 public class Try {
-    public static <T, R> Function<T, R> to(ThrowingFunction<T, R> fn) {
+    public static <T, R> Function<T, R> to(TryFunction<T, R> fn) {
         return fn;
     }
 
-    public static <T, R> Function<T, R> to(ThrowingFunction<T, R> fn, BiFunction<Exception, T, R> onCatch) {
-        return arg -> {
+    public static <T, R> Function<T, R> to(TryFunction<T, R> fn, Function<T, Function<Exception, R>> onCatch) {
+        return t -> {
             try {
-                return fn.applyEx(arg);
+                return fn.tryApply(t);
             } catch (Exception e) {
-                return onCatch.apply(e, arg);
+                return onCatch.apply(t).apply(e);
             }
         };
     }
 
-    public static <T, U, R> BiFunction<T, U, R> to(ThrowingBiFunction<T, U, R> fn) {
+    public static <T, U, R> BiFunction<T, U, R> to(TryBiFunction<T, U, R> fn) {
         return fn;
     }
 
-    public static <T, U, R> BiFunction<T, U, R> to(ThrowingBiFunction<T, U, R> fn,
-            BiFunction<Exception, Object[], R> onCatch) {
-        return (arg1, arg2) -> {
+    public static <T, U, R> BiFunction<T, U, R> to(TryBiFunction<T, U, R> fn,
+            BiFunction<T, U, Function<Exception, R>> onCatch) {
+        return (t, u) -> {
             try {
-                return fn.applyEx(arg1, arg2);
+                return fn.tryApply(t, u);
             } catch (Exception e) {
-                return onCatch.apply(e, new Object[] { arg1, arg2 });
+                return onCatch.apply(t, u).apply(e);
             }
         };
     }
 
-    public static <R> Supplier<R> to(ThrowingSupplier<R> fn) {
+    public static <R> Supplier<R> to(TrySupplier<R> fn) {
         return fn;
     }
 
-    public static <R> Supplier<R> to(ThrowingSupplier<R> fn, Function<Exception, R> onCatch) {
+    public static <R> Supplier<R> to(TrySupplier<R> fn, Function<Exception, R> onCatch) {
         return () -> {
             try {
-                return fn.getEx();
+                return fn.tryGet();
             } catch (Exception e) {
                 return onCatch.apply(e);
             }
         };
     }
 
-    public static <T> Consumer<T> to(ThrowingConsumer<T> fn) {
+    public static <T> Consumer<T> accept(TryConsumer<T> fn) {
         return fn;
     }
 
-    public static <T, U> BiConsumer<T, U> to(ThrowingBiConsumer<T, U> fn) {
+    public static <T, U> BiConsumer<T, U> accept(TryBiConsumer<T, U> fn) {
         return fn;
     }
 
-    public static Runnable to(ThrowingRunnable fn) {
-        return fn;
+    public static <T> T get(TrySupplier<T> fn) {
+        return fn.get();
     }
 
-    public static <T> T get(ThrowingSupplier<T> fn) {
-        try {
-            return fn.getEx();
-        } catch (Exception e) {
-            throw Sys.asRuntimeException(e);
-        }
+    public static void run(TryRunnable fn) {
+        fn.run();
     }
 
-    public static void run(ThrowingRunnable fn) {
-        try {
-            fn.runEx();
-        } catch (Exception e) {
-            throw Sys.asRuntimeException(e);
-        }
+    public static RuntimeException asRuntimeException(Exception e, Object... params) {
+        return Sys.asRuntimeException(e, params);
     }
 }

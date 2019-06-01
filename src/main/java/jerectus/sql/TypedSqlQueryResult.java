@@ -2,8 +2,8 @@ package jerectus.sql;
 
 import java.util.List;
 
-import jerectus.util.function.ThrowingBiConsumer;
-import jerectus.util.function.ThrowingConsumer;
+import jerectus.util.function.TryBiConsumer;
+import jerectus.util.function.TryConsumer;
 
 public class TypedSqlQueryResult<T> implements AutoCloseable {
     private Class<T> resultType;
@@ -24,13 +24,13 @@ public class TypedSqlQueryResult<T> implements AutoCloseable {
         return this;
     }
 
-    public void forEach(ThrowingConsumer<T> fn) {
+    public void forEach(TryConsumer<T> fn) {
         sqlQueryResult.forEach(rs -> {
             fn.accept(rs.get(resultType, null));
         });
     }
 
-    public void forEach(ThrowingBiConsumer<T, SqlQueryResult> fn) {
+    public void forEach(TryBiConsumer<T, SqlQueryResult> fn) {
         sqlQueryResult.forEach(rs -> {
             fn.accept(rs.get(resultType, null), rs);
         });

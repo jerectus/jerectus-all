@@ -17,7 +17,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import jerectus.sql.internal.Classes;
 import jerectus.util.Sys;
-import jerectus.util.function.ThrowingConsumer;
+import jerectus.util.function.TryConsumer;
 import jerectus.util.logging.Logger;
 
 public class SqlQueryResult implements AutoCloseable {
@@ -153,7 +153,7 @@ public class SqlQueryResult implements AutoCloseable {
         return om.convertValue(result.containsKey(name) ? result.get(name) : result, type);
     }
 
-    public void forEach(ThrowingConsumer<SqlQueryResult> fn) {
+    public void forEach(TryConsumer<SqlQueryResult> fn) {
         try {
             while (next()) {
                 fn.accept(this);
