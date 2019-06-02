@@ -1,4 +1,4 @@
-package jerectus.sql.internal;
+package jerectus.sql.parser;
 
 import java.util.List;
 import java.util.function.Predicate;

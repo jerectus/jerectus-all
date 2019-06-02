@@ -3,33 +3,9 @@ package jerectus.sql.parser;
 import java.util.ArrayList;
 import java.util.List;
 
-import jerectus.sql.internal.Cursor;
 import jerectus.text.PatternTokenizer;
 
-public class SqlParser {
-    public static class Token extends PatternTokenizer.Token {
-        public String frontSpace;
-
-        public Token(String type, String value, String frontSpace) {
-            super(type, value);
-            this.frontSpace = frontSpace;
-        }
-
-        public String getContent() {
-            if (is("comment")) {
-                return value.substring(2, value.length() - 2);
-            } else if (is("comment1")) {
-                return value.substring(2);
-            }
-            return value;
-        }
-
-        @Override
-        public String toString() {
-            return frontSpace + value;
-        }
-    }
-
+public class SqlTokenizer {
     private PatternTokenizer lexer = new PatternTokenizer();
     {
         lexer.addTokenPattern("string", "'([^']|'')*'");
@@ -77,4 +53,26 @@ public class SqlParser {
         return result;
     }
 
+    public static class Token extends PatternTokenizer.Token {
+        public String frontSpace;
+
+        public Token(String type, String value, String frontSpace) {
+            super(type, value);
+            this.frontSpace = frontSpace;
+        }
+
+        public String getContent() {
+            if (is("comment")) {
+                return value.substring(2, value.length() - 2);
+            } else if (is("comment1")) {
+                return value.substring(2);
+            }
+            return value;
+        }
+
+        @Override
+        public String toString() {
+            return frontSpace + value;
+        }
+    }
 }

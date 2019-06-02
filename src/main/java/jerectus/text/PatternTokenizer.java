@@ -8,37 +8,6 @@ import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 public class PatternTokenizer {
-    public static class Token {
-        public String type;
-        public String value;
-
-        private Map<String, Object> attrMap;
-
-        public Token(String type, String value) {
-            this.type = type;
-            this.value = value;
-        }
-
-        public boolean is(String type) {
-            return this.type.matches(type);
-        }
-
-        public boolean matches(String pattern) {
-            return value.matches(pattern);
-        }
-
-        public Object attr(String name) {
-            return attrMap == null ? null : attrMap.get(name);
-        }
-
-        public void attr(String name, Object value) {
-            if (attrMap == null) {
-                attrMap = new LinkedHashMap<>();
-            }
-            attrMap.put(name, value);
-        }
-    }
-
     private List<String> types = new ArrayList<>();
     private StringBuilder patternBuilder = new StringBuilder();
 
@@ -70,6 +39,37 @@ public class PatternTokenizer {
                 }
             }
             pos = m.end();
+        }
+    }
+
+    public static class Token {
+        public String type;
+        public String value;
+
+        private Map<String, Object> attrMap;
+
+        public Token(String type, String value) {
+            this.type = type;
+            this.value = value;
+        }
+
+        public boolean is(String type) {
+            return this.type.matches(type);
+        }
+
+        public boolean matches(String pattern) {
+            return value.matches(pattern);
+        }
+
+        public Object attr(String name) {
+            return attrMap == null ? null : attrMap.get(name);
+        }
+
+        public void attr(String name, Object value) {
+            if (attrMap == null) {
+                attrMap = new LinkedHashMap<>();
+            }
+            attrMap.put(name, value);
         }
     }
 }

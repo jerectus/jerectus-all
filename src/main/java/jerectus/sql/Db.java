@@ -14,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import jerectus.io.IO;
 import jerectus.sql.internal.TableMeta;
-import jerectus.sql.parser.SqlParser;
+import jerectus.sql.parser.SqlTokenizer;
 import jerectus.sql.template.SqlTemplate;
 import jerectus.util.Sys;
 import jerectus.util.Try;
@@ -140,7 +140,7 @@ public class Db implements AutoCloseable {
 
     public int execute(Path sqlPath, Object params) {
         var sql = IO.load(sqlPath);
-        var p = new SqlParser();
+        var p = new SqlTokenizer();
         int n = 0;
         for (var s : p.splitStatement(sql)) {
             var t = new SqlTemplate(s);

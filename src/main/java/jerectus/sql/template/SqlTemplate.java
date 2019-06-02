@@ -16,8 +16,8 @@ import org.apache.commons.jexl3.JexlContext;
 import org.apache.commons.jexl3.internal.Closure;
 
 import jerectus.io.IO;
-import jerectus.sql.internal.Cursor;
-import jerectus.sql.parser.SqlParser;
+import jerectus.sql.parser.Cursor;
+import jerectus.sql.parser.SqlTokenizer;
 import jerectus.text.Template;
 import jerectus.text.TemplateEngine;
 import jerectus.util.Sys;
@@ -59,7 +59,7 @@ public class SqlTemplate {
         if (sqlTemplate != null)
             return sqlTemplate;
 
-        var cursor = new SqlParser().parse(getSql());
+        var cursor = new SqlTokenizer().parse(getSql());
         while (cursor.moveNext()) {
             var t = cursor.get();
             if (t.is("comment1?")) {
@@ -164,16 +164,16 @@ public class SqlTemplate {
         return new Result(sql, ctx.params);
     }
 
-    private SqlParser.Token newToken(String type, String value, String frontSpace) {
-        return new SqlParser.Token(type, value, frontSpace);
+    private SqlTokenizer.Token newToken(String type, String value, String frontSpace) {
+        return new SqlTokenizer.Token(type, value, frontSpace);
     }
 
-    private void insertBefore(Cursor<SqlParser.Token> c, String s) {
+    private void insertBefore(Cursor<SqlTokenizer.Token> c, String s) {
         c.insertBefore(newToken("", s, Sys.ifEmpty(c.get().frontSpace, " ")));
         c.get().frontSpace = "";
     }
 
-    private void encloseLine(Cursor<SqlParser.Token> cursor, String head, String tail) {
+    private void encloseLine(Cursor<SqlTokenizer.Token> cursor, String head, String tail) {
         var begin = cursor.find(it -> it.is("newline"), -1).next();
         if (begin.get().matches("(?i)where|and|or|on|when|having|,|$")) {
             begin.moveNext();
