@@ -73,7 +73,7 @@ public class Try {
         fn.run();
     }
 
-    public static RuntimeException asRuntimeException(Exception e, Object... params) {
-        return Sys.asRuntimeException(e, params);
+    public static TryException asRuntimeException(Exception e, Object... params) {
+        throw new TryException(e, params);
     }
 }

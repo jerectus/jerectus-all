@@ -2,7 +2,7 @@ package jerectus.util.function;
 
 import java.util.function.BiConsumer;
 
-import jerectus.util.Sys;
+import jerectus.util.Try;
 
 @FunctionalInterface
 public interface TryBiConsumer<T, U> extends BiConsumer<T, U> {
@@ -12,7 +12,7 @@ public interface TryBiConsumer<T, U> extends BiConsumer<T, U> {
         try {
             tryAccept(t, u);
         } catch (Exception e) {
-            throw Sys.asRuntimeException(e, t, u);
+            throw Try.asRuntimeException(e, t, u);
         }
     }
 }

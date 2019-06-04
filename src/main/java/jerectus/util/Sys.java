@@ -81,10 +81,6 @@ public class Sys {
         throw e instanceof RuntimeException ? (RuntimeException) e : new RuntimeException(e);
     }
 
-    public static RuntimeException asRuntimeException(Exception e, Object... params) {
-        throw e instanceof RuntimeException ? (RuntimeException) e : new RuntimeException(e);
-    }
-
     public static <T> T newInstance(Constructor<T> c) {
         return Try.get(() -> c.newInstance());
     }

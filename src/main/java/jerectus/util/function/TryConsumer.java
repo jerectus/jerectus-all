@@ -2,7 +2,7 @@ package jerectus.util.function;
 
 import java.util.function.Consumer;
 
-import jerectus.util.Sys;
+import jerectus.util.Try;
 
 @FunctionalInterface
 public interface TryConsumer<T> extends Consumer<T> {
@@ -12,7 +12,7 @@ public interface TryConsumer<T> extends Consumer<T> {
         try {
             tryAccept(t);
         } catch (Exception e) {
-            throw Sys.asRuntimeException(e, t);
+            throw Try.asRuntimeException(e, t);
         }
     }
 }

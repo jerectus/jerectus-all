@@ -2,7 +2,7 @@ package jerectus.util.function;
 
 import java.util.function.Function;
 
-import jerectus.util.Sys;
+import jerectus.util.Try;
 
 @FunctionalInterface
 public interface TryFunction<T, R> extends Function<T, R> {
@@ -12,7 +12,7 @@ public interface TryFunction<T, R> extends Function<T, R> {
         try {
             return tryApply(t);
         } catch (Exception e) {
-            throw Sys.asRuntimeException(e, t);
+            throw Try.asRuntimeException(e, t);
         }
     }
 }

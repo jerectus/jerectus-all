@@ -2,7 +2,7 @@ package jerectus.util.function;
 
 import java.util.function.BiFunction;
 
-import jerectus.util.Sys;
+import jerectus.util.Try;
 
 @FunctionalInterface
 public interface TryBiFunction<T, U, R> extends BiFunction<T, U, R> {
@@ -12,7 +12,7 @@ public interface TryBiFunction<T, U, R> extends BiFunction<T, U, R> {
         try {
             return tryApply(t, u);
         } catch (Exception e) {
-            throw Sys.asRuntimeException(e, t, u);
+            throw Try.asRuntimeException(e, t, u);
         }
     }
 }

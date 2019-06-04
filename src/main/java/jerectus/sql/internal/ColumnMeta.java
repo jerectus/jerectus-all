@@ -5,6 +5,7 @@ import javax.persistence.Id;
 
 import jerectus.util.BeanProperty;
 import jerectus.util.Sys;
+import jerectus.util.Try;
 
 public class ColumnMeta {
     public final String name;
@@ -23,10 +24,6 @@ public class ColumnMeta {
     }
 
     public Object getValue(Object entity) {
-        try {
-            return property.get(entity);
-        } catch (Exception e) {
-            throw Sys.asRuntimeException(e);
-        }
+        return Try.get(() -> property.get(entity));
     }
 }
