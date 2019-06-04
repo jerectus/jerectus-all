@@ -33,6 +33,30 @@ public class Sys {
         return o != null && o.getClass().isArray();
     }
 
+    public static String substring(String s, int start, int end) {
+        if (start < 0) {
+            start = s.length() + start;
+        }
+        if (start < 0) {
+            start = 0;
+        } else if (start > s.length()) {
+            start = s.length();
+        }
+        if (end < 0) {
+            end = s.length() + end;
+        }
+        if (end < 0) {
+            end = 0;
+        } else if (end > s.length()) {
+            end = s.length();
+        }
+        return s.substring(start, end);
+    }
+
+    public static String substring(String s, int start) {
+        return substring(s, start, Integer.MAX_VALUE);
+    }
+
     public static String capitalize(String s) {
         if (s == null || s.isEmpty())
             return s;

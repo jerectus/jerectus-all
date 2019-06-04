@@ -25,6 +25,10 @@ import jerectus.util.logging.Logger;
 
 public class SqlTemplate {
     private static final Logger log = Logger.getLogger(SqlTemplate.class);
+    private static final TemplateEngine engine = new TemplateEngine();
+    static {
+        // TODO: engine.preprocessor(...);
+    }
     private Supplier<String> sqlSupplier;
     private String sql;
     private Template sqlTemplate;
@@ -64,36 +68,12 @@ public class SqlTemplate {
             var t = cursor.get();
             if (t.is("comment1?")) {
                 var m = new Match(t.getContent().trim());
-                if (m.matches("#if\\s+(.+)")) {
-                    t.value = "\u007f<%if (" + m.group(1) + ") {%>";
-                } else if (m.matches("#elseif\\s+(.+)")) {
-                    t.value = "<%} else if (" + m.group(1) + ") {%>";
-                } else if (m.matches("#else")) {
-                    t.value = "<%} else {%>";
-                } else if (m.matches("#end-if")) {
-                    t.value = "<%}%>";
-                } else if (m.matches("#end-for\\b(\\s*:(.*))?")) {
-                    t.value = "<%});%>";
-                    if (m.group(2) != null) {
-                        var sep = m.group(2).trim();
-                        var c = cursor.find(it -> it.is("#for"), -1);
-                        if (c.get().is("#for")) {
-                            var f = c.get();
-                            c = c.next();
-                            if (c.get().is("newline")) {
-                                c = c.next();
-                            }
-                            insertBefore(c, String.format("<%%if (!%s.first) {%%>%s <%%}%%>", f.attr("stat"), sep));
-                            cursor.moveNext();
-                        }
+                if (m.matches("#(if|for|elseif|else|end)\\b.*")) {
+                    t.value = (m.group(1).matches("if|for") ? "\u007f" : "") + "<%%" + m.group().substring(1) + "%>";
+                    t.frontSpace = "";
+                    if (cursor.prev().get().is("newline")) {
+                        cursor.prev().get().value = "";
                     }
-                } else if (m.matches("#for\\s+([a-zA-Z_\\$]\\w*)\\s*(,\\s*([a-zA-Z_\\$]\\w*))?:\\s*(.*)")) {
-                    t.attr("var", m.group(1));
-                    t.attr("stat", Sys.ifEmpty(m.group(3), m.group(1) + "$stat"));
-                    t.attr("list", m.group(4));
-                    t.type = "#for";
-                    t.value = String.format("\u007f<%%tf:forEach(this, %s, function (%s, %s) {%%>", t.attr("list"),
-                            t.attr("var"), t.attr("stat"));
                 } else if (m.matches("##if\\s+(.+)")) {
                     cursor.remove(0);
                     encloseLine(cursor, String.format("<%%if (%s) {%%>", m.group(1)), "<%} else {%>\u007f<%}%>");
@@ -343,6 +323,10 @@ class Match {
 
     public Matcher matcher() {
         return m;
+    }
+
+    public String group() {
+        return m.group();
     }
 
     public String group(int index) {

@@ -49,6 +49,10 @@ public class Cursor<T> {
         return of(list, index + 1);
     }
 
+    public Cursor<T> prev() {
+        return of(list, index - 1);
+    }
+
     public Cursor<T> find(Predicate<T> pred, int step) {
         int i = index + step;
         if (step > 0) {

@@ -143,15 +143,17 @@ public class TemplateEngine {
                     append("} else if (", m.group(1), ") {");
                 } else if (p.matches(s, "else\\b(.*)")) {
                     append("} else {");
-                } else if (p.matches(s, "end-if\\b(.*)")) {
+                } else if (p.matches(s, "end\\b(.*)")) {
                     append("}");
-                } else if (p.matches(s, "each\\b\\s*((\\w+)\\s*(,\\s*(\\w+))?\\s*:)?\\s*(.+)")) {
+                } else if (p.matches(s, "for\\s+((\\w+)\\s*(,\\s*(\\w+))?\\s*:)?\\s*([^;]+)(;.*)?")) {
                     var iter = Sys.ifEmpty(p.group(2), "it");
                     var stat = Sys.ifEmpty(p.group(4), iter + "$");
-                    var list = p.group(5);
+                    var list = p.group(5).trim();
+                    var options = p.group(6).substring(1).trim();
                     append("for (var ", stat, " : tf:each(", list, ")) { var ", iter, " = ", stat, ".value;");
-                } else if (p.matches(s, "end-each\\b(.*)")) {
-                    append("}");
+                    if (p.matches(options, "delim\\s*=\\s*(\"[^\"]+\"|'[^']+'|`([^`]|\\`)+`)")) {
+                        append("if (!", stat, ".first) { out.print(", p.group(1), "); }");
+                    }
                 } else if (p.matches(s, "super\\s*")) {
                     append("super();");
                 }
