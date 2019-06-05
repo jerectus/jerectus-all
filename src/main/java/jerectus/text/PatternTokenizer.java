@@ -4,8 +4,10 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import jerectus.util.YieldIterator;
 
 public class PatternTokenizer {
     private List<String> types = new ArrayList<>();
@@ -23,23 +25,29 @@ public class PatternTokenizer {
         patternBuilder.append(")");
     }
 
-    public void parse(String text, Consumer<Token> fn) {
-        var pattern = Pattern.compile(patternBuilder.toString());
-        var m = pattern.matcher(text);
-        int pos = 0;
-        while (m.find()) {
-            if (m.start() > pos) {
-                fn.accept(new Token("", text.substring(pos, m.start())));
-            }
-            for (var type : types) {
-                var value = m.group(type);
-                if (value != null) {
-                    fn.accept(new Token(type, value));
-                    break;
+    public Iterable<Token> parse(String text) {
+        return () -> new YieldIterator<Token>() {
+            Pattern pattern = Pattern.compile(patternBuilder.toString());
+            Matcher m = pattern.matcher(text);
+            int pos = 0;
+
+            @Override
+            public void generate() {
+                if (m.find()) {
+                    if (m.start() > pos) {
+                        yield(new Token("", text.substring(pos, m.start())));
+                    }
+                    for (var type : types) {
+                        var value = m.group(type);
+                        if (value != null) {
+                            yield(new Token(type, value));
+                            break;
+                        }
+                    }
+                    pos = m.end();
                 }
             }
-            pos = m.end();
-        }
+        };
     }
 
     public static class Token {

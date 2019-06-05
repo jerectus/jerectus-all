@@ -17,6 +17,7 @@ import org.apache.commons.jexl3.internal.Closure;
 
 import jerectus.io.IO;
 import jerectus.sql.parser.Cursor;
+import jerectus.sql.parser.SqlToken;
 import jerectus.sql.parser.SqlTokenizer;
 import jerectus.text.Template;
 import jerectus.text.TemplateEngine;
@@ -144,16 +145,16 @@ public class SqlTemplate {
         return new Result(sql, ctx.params);
     }
 
-    private SqlTokenizer.Token newToken(String type, String value, String frontSpace) {
-        return new SqlTokenizer.Token(type, value, frontSpace);
+    private SqlToken newToken(String type, String value, String frontSpace) {
+        return new SqlToken(type, value, frontSpace);
     }
 
-    private void insertBefore(Cursor<SqlTokenizer.Token> c, String s) {
+    private void insertBefore(Cursor<SqlToken> c, String s) {
         c.insertBefore(newToken("", s, Sys.ifEmpty(c.get().frontSpace, " ")));
         c.get().frontSpace = "";
     }
 
-    private void encloseLine(Cursor<SqlTokenizer.Token> cursor, String head, String tail) {
+    private void encloseLine(Cursor<SqlToken> cursor, String head, String tail) {
         var begin = cursor.find(it -> it.is("newline"), -1).next();
         if (begin.get().matches("(?i)where|and|or|on|when|having|,|$")) {
             begin.moveNext();

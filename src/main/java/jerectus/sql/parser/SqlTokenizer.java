@@ -20,18 +20,26 @@ public class SqlTokenizer {
         lexer.addTokenPattern("space", "\\s+");
     }
 
-    public Cursor<Token> parse(String sql) {
-        List<Token> result = new ArrayList<>();
+    public Cursor<SqlToken> parse(String sql) {
+        List<SqlToken> result = new ArrayList<>();
         String[] space = { "" };
-        lexer.parse(sql, token -> {
-            if (token.type.equals("space")) {
+        // lexer.parse(sql, token -> {
+        // if (token.type.equals("space")) {
+        // space[0] = token.value;
+        // } else {
+        // result.add(new Token(token.type, token.value, space[0]));
+        // space[0] = "";
+        // }
+        // });
+        lexer.parse(sql).forEach(token -> {
+            if (token.is("space")) {
                 space[0] = token.value;
             } else {
-                result.add(new Token(token.type, token.value, space[0]));
+                result.add(new SqlToken(token.type, token.value, space[0]));
                 space[0] = "";
             }
         });
-        result.add(new Token("", "", ""));
+        result.add(new SqlToken("", "", ""));
         return Cursor.of(result, -1);
     }
 
@@ -51,28 +59,5 @@ public class SqlTokenizer {
             }
         }
         return result;
-    }
-
-    public static class Token extends PatternTokenizer.Token {
-        public String frontSpace;
-
-        public Token(String type, String value, String frontSpace) {
-            super(type, value);
-            this.frontSpace = frontSpace;
-        }
-
-        public String getContent() {
-            if (is("comment")) {
-                return value.substring(2, value.length() - 2);
-            } else if (is("comment1")) {
-                return value.substring(2);
-            }
-            return value;
-        }
-
-        @Override
-        public String toString() {
-            return frontSpace + value;
-        }
     }
 }
