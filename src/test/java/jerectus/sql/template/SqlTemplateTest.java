@@ -1,7 +1,6 @@
 package jerectus.sql.template;
 
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.HashMap;
 
 import org.junit.Test;

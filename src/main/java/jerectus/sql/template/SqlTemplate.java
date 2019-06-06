@@ -28,43 +28,28 @@ public class SqlTemplate {
     private static final Logger log = Logger.getLogger(SqlTemplate.class);
     private static final TemplateEngine engine = new TemplateEngine();
     static {
-        // TODO: engine.preprocessor(...);
+        engine.preprocessor(SqlTemplate::preprocess);
     }
-    private Supplier<String> sqlSupplier;
-    private String sql;
+    // private Supplier<String> sqlSupplier;
+    // private String sql;
+    // private Template sqlTemplate;
+    private Supplier<Template> supplier;
     private Template sqlTemplate;
 
     public SqlTemplate(String sql) {
-        this.sql = sql;
+        supplier = () -> engine.createTemplate(sql);
     }
 
     public SqlTemplate(Supplier<String> fn) {
-        sqlSupplier = fn;
+        supplier = () -> engine.createTemplate(fn.get());
     }
 
-    public SqlTemplate(Path sql) {
-        sqlSupplier = () -> IO.load(sql);
+    public SqlTemplate(Path path) {
+        supplier = () -> engine.getTemplate(path);
     }
 
-    private String getSql() {
-        if (sql == null && sqlSupplier != null) {
-            sql = sqlSupplier.get();
-        }
-        return sql;
-    }
-
-    private String escape(String s) {
-        s = s.replace("\\", "\\\\");
-        s = s.replace("$", "\\$");
-        s = s.replace("<%", "<<%%>%");
-        return s;
-    }
-
-    private Template getTemplate() {
-        if (sqlTemplate != null)
-            return sqlTemplate;
-
-        var cursor = Cursor.of(new SqlTokenizer().parse(getSql()), -1);
+    private static String preprocess(String sql) {
+        var cursor = Cursor.of(new SqlTokenizer().parse(sql), -1);
         while (cursor.moveNext()) {
             var t = cursor.get();
             if (t.is("comment1?")) {
@@ -96,10 +81,19 @@ public class SqlTemplate {
             }
         }
         sql = cursor.list().stream().map(t -> t.toString()).collect(Collectors.joining());
-        try {
-            sqlTemplate = new TemplateEngine().createTemplate(sql);
-        } catch (Exception e) {
-            throw Sys.asRuntimeException(e);
+        return sql;
+    }
+
+    private static String escape(String s) {
+        s = s.replace("\\", "\\\\");
+        s = s.replace("$", "\\$");
+        s = s.replace("<%", "<<%%>%");
+        return s;
+    }
+
+    private Template getTemplate() {
+        if (sqlTemplate == null) {
+            sqlTemplate = supplier.get();
         }
         return sqlTemplate;
     }
@@ -143,16 +137,16 @@ public class SqlTemplate {
         return new Result(sql, ctx.params);
     }
 
-    private SqlToken newToken(String type, String value, String frontSpace) {
+    private static SqlToken newToken(String type, String value, String frontSpace) {
         return new SqlToken(type, value, frontSpace);
     }
 
-    private void insertBefore(Cursor<SqlToken> c, String s) {
+    private static void insertBefore(Cursor<SqlToken> c, String s) {
         c.insertBefore(newToken("", s, Sys.ifEmpty(c.get().frontSpace, " ")));
         c.get().frontSpace = "";
     }
 
-    private void encloseLine(Cursor<SqlToken> cursor, String head, String tail) {
+    private static void encloseLine(Cursor<SqlToken> cursor, String head, String tail) {
         var begin = cursor.find(it -> it.is("newline"), -1).next();
         if (begin.get().matches("(?i)where|and|or|on|when|having|,|$")) {
             begin.moveNext();
