@@ -8,6 +8,7 @@ import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -201,5 +202,14 @@ public class Sys {
             return new ArrayIterable<T>(o);
         }
         return cast(Arrays.asList(o));
+    }
+
+    public static <T> Iterable<T> iterable(Consumer<Generator<T>> fn) {
+        return () -> new YieldIterator<T>() {
+            @Override
+            public void generate() {
+                fn.accept(this);
+            }
+        };
     }
 }

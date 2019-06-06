@@ -64,7 +64,7 @@ public class SqlTemplate {
         if (sqlTemplate != null)
             return sqlTemplate;
 
-        var cursor = new SqlTokenizer().parse(getSql());
+        var cursor = Cursor.of(new SqlTokenizer().parse(getSql()), -1);
         while (cursor.moveNext()) {
             var t = cursor.get();
             if (t.is("comment1?")) {
@@ -77,14 +77,14 @@ public class SqlTemplate {
                     }
                 } else if (m.matches("##if\\s+(.+)")) {
                     cursor.remove(0);
-                    encloseLine(cursor, String.format("<%%if (%s) {%%>", m.group(1)), "<%} else {%>\u007f<%}%>");
+                    encloseLine(cursor, String.format("<%%if(%s){%%>", m.group(1)), "<%}else{%>\u007f<%}%>");
                 } else if (m.matches(":(%)?(\\w+)(%)?(\\?)?")) {
-                    t.value = String.format("<%%= sql.bind(%s, %s, %s) %%>", m.group(2), m.group(1) != null,
+                    t.value = String.format("<%%=sql.bind(%s, %s, %s)%%>", m.group(2), m.group(1) != null,
                             m.group(3) != null);
                     cursor.remove(1);
                     if (m.group(4) != null) {
-                        encloseLine(cursor, String.format("<%%if (sql.isNotEmpty(%s)) {%%>", m.group(2)),
-                                "<%} else {%>\u007f<%}%>");
+                        encloseLine(cursor, String.format("<%%if(sql.isNotEmpty(%s)){%%>", m.group(2)),
+                                "<%}else{%>\u007f<%}%>");
                     }
                 } else if (m.matches("(@.*)")) {
                     t.value = String.format("' ' \"%s\",", m.group(1).trim());
@@ -97,7 +97,6 @@ public class SqlTemplate {
         }
         sql = cursor.list().stream().map(t -> t.toString()).collect(Collectors.joining());
         try {
-            log.info("sql:", sql);
             sqlTemplate = new TemplateEngine().createTemplate(sql);
         } catch (Exception e) {
             throw Sys.asRuntimeException(e);
@@ -110,7 +109,6 @@ public class SqlTemplate {
         var ctx = new SQL();
         bindings.put("sql", ctx);
         String sql = getTemplate().execute(bindings);
-        log.info("sql:", sql);
         for (;;) {
             sql = sql.replaceAll("\u007f(,|\\s+|\u007f|and\\b|or\\b)*\u007f", "\u007f");
             sql = sql.replaceAll(" *,\\s*\u007f\\R?", "");
@@ -172,6 +170,11 @@ public class SqlTemplate {
         public Result(String sql, List<Object> parameters) {
             this.sql = sql;
             this.parameters = parameters;
+        }
+
+        @Override
+        public String toString() {
+            return sql + parameters;
         }
     }
 

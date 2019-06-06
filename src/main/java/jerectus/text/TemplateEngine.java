@@ -138,11 +138,11 @@ public class TemplateEngine {
             void logic(String s) {
                 var p = new PatternMatcher();
                 if (p.matches(s, "if\\b(.*)")) {
-                    append("if (", m.group(1), ") {");
+                    append("if(", m.group(1), "){");
                 } else if (p.matches(s, "else-if\\b(.*)")) {
-                    append("} else if (", m.group(1), ") {");
+                    append("}else if(", m.group(1), "){");
                 } else if (p.matches(s, "else\\b(.*)")) {
-                    append("} else {");
+                    append("}else{");
                 } else if (p.matches(s, "end\\b(.*)")) {
                     append("}");
                 } else if (p.matches(s, "for\\s+((\\w+)\\s*(,\\s*(\\w+))?\\s*:)?\\s*([^;]+)(;.*)?")) {
@@ -150,9 +150,9 @@ public class TemplateEngine {
                     var stat = Sys.ifEmpty(p.group(4), iter + "$");
                     var list = p.group(5).trim();
                     var options = p.group(6).substring(1).trim();
-                    append("for (var ", stat, " : tf:each(", list, ")) { var ", iter, " = ", stat, ".value;");
+                    append("for(var ", stat, " : tf:each(", list, ")){var ", iter, " = ", stat, ".value;");
                     if (p.matches(options, "delim\\s*=\\s*(\"[^\"]+\"|'[^']+'|`([^`]|\\`)+`)")) {
-                        append("if (!", stat, ".first) { out.print(", p.group(1), "); }");
+                        append("if(!", stat, ".first){out.print(", p.group(1), ");}");
                     }
                 } else if (p.matches(s, "super\\s*")) {
                     append("super();");

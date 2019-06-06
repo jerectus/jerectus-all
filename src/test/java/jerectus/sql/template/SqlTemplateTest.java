@@ -12,7 +12,7 @@ public class SqlTemplateTest {
         var path = Paths.get(getClass().getResource("test1.sql").toURI());
         var tpl = new SqlTemplate(path);
         var vars = new HashMap<>();
-        vars.put("IDsx", Arrays.asList(1, 3, 5));
-        System.out.println(tpl.process(vars).sql);
+        vars.put("IDs", new int[] { 1, 22, 333 });
+        System.out.println(tpl.process(vars));
     }
 }

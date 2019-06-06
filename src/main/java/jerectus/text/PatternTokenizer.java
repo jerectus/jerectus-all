@@ -10,25 +10,17 @@ import java.util.regex.Pattern;
 import jerectus.util.YieldIterator;
 
 public class PatternTokenizer {
-    private List<String> types = new ArrayList<>();
-    private StringBuilder patternBuilder = new StringBuilder();
+    private List<String> types;
+    private Pattern pattern;
 
-    public void addTokenPattern(String type, String pattern) {
-        types.add(type);
-        if (types.size() > 1) {
-            patternBuilder.append("|");
-        }
-        patternBuilder.append("(?<");
-        patternBuilder.append(type);
-        patternBuilder.append(">");
-        patternBuilder.append(pattern);
-        patternBuilder.append(")");
+    private PatternTokenizer(List<String> types, String pattern) {
+        this.types = types;
+        this.pattern = Pattern.compile(pattern);
     }
 
     public Iterable<Token> parse(String text) {
+        Matcher m = pattern.matcher(text);
         return () -> new YieldIterator<Token>() {
-            Pattern pattern = Pattern.compile(patternBuilder.toString());
-            Matcher m = pattern.matcher(text);
             int pos = 0;
 
             @Override
@@ -78,6 +70,32 @@ public class PatternTokenizer {
                 attrMap = new LinkedHashMap<>();
             }
             attrMap.put(name, value);
+        }
+    }
+
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        private List<String> types = new ArrayList<>();
+        private StringBuilder patternBuilder = new StringBuilder();
+
+        public Builder pattern(String type, String pattern) {
+            types.add(type);
+            if (types.size() > 1) {
+                patternBuilder.append("|");
+            }
+            patternBuilder.append("(?<");
+            patternBuilder.append(type);
+            patternBuilder.append(">");
+            patternBuilder.append(pattern);
+            patternBuilder.append(")");
+            return this;
+        }
+
+        public PatternTokenizer build() {
+            return new PatternTokenizer(types, patternBuilder.toString());
         }
     }
 }
