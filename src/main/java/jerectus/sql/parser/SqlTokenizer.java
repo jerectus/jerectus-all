@@ -23,7 +23,7 @@ public class SqlTokenizer {
         lexer = b.build();
     }
 
-    public List<SqlToken> parse(String sql) {
+    public List<SqlToken> parse1(String sql) {
         List<SqlToken> result = new ArrayList<>();
         String[] space = { "" };
         lexer.parse(sql).forEach(token -> {
@@ -38,18 +38,20 @@ public class SqlTokenizer {
         return result;
     }
 
-    public Iterable<SqlToken> parse0(String sql) {
+    public Iterable<SqlToken> parse(String sql) {
         var it = lexer.parse(sql).iterator();
         return Sys.iterable(g -> {
+            if (!it.hasNext())
+                return;
             String space = "";
-            while (it.hasNext()) {
+            do {
                 var token = it.next();
                 if (!token.is("space")) {
                     g.yield(new SqlToken(token.type, token.value, space));
                     return;
                 }
                 space += token.value;
-            }
+            } while (it.hasNext());
             g.yield(new SqlToken("end", "", space));
         });
     }

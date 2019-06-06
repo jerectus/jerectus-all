@@ -1,7 +1,10 @@
 package jerectus.sql.parser;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
+
+import jerectus.util.Sys;
 
 public class Cursor<T> {
     private List<T> list;
@@ -73,5 +76,9 @@ public class Cursor<T> {
 
     public static <T> Cursor<T> of(List<T> list, int index) {
         return new Cursor<T>(list, index);
+    }
+
+    public static <T> Cursor<T> of(Iterable<T> list, int index) {
+        return new Cursor<T>(Sys.copy(new ArrayList<>(), list), index);
     }
 }

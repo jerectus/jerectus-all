@@ -212,4 +212,11 @@ public class Sys {
             }
         };
     }
+
+    public static <T, C extends Collection<T>> C copy(C c, Iterable<T> it) {
+        for (var v : it) {
+            c.add(v);
+        }
+        return c;
+    }
 }

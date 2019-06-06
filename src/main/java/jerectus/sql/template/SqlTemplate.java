@@ -26,10 +26,7 @@ import jerectus.util.logging.Logger;
 
 public class SqlTemplate {
     private static final Logger log = Logger.getLogger(SqlTemplate.class);
-    private static final TemplateEngine engine = new TemplateEngine();
-    static {
-        engine.preprocessor(SqlTemplate::preprocess);
-    }
+    private static final TemplateEngine engine = new TemplateEngine().preprocessor(SqlTemplate::preprocess);
     // private Supplier<String> sqlSupplier;
     // private String sql;
     // private Template sqlTemplate;
