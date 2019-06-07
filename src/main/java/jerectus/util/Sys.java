@@ -219,4 +219,9 @@ public class Sys {
         }
         return c;
     }
+
+    public static <T> T eval(T it, Consumer<T> fn) {
+        fn.accept(it);
+        return it;
+    }
 }

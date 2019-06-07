@@ -1,8 +1,10 @@
 package jerectus.text;
 
+import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -177,9 +179,27 @@ public class TemplateEngine {
         return new Template(parent, engine.createScript(sb.toString()));
     }
 
+    private static int size(Object o) {
+        if (o == null) {
+            return 0;
+        } else if (o instanceof Collection) {
+            Collection<Object> c = Sys.cast(o);
+            return c.size();
+        } else if (o.getClass().isArray()) {
+            return Array.getLength(o);
+        } else {
+            return 1;
+        }
+    }
+
     public static class ForEachStat {
+        int size;
         Object value;
         int index = -1;
+
+        public ForEachStat(int size) {
+            this.size = size;
+        }
 
         public Object getValue() {
             return value;
@@ -195,6 +215,10 @@ public class TemplateEngine {
 
         public boolean isFirst() {
             return index == 0;
+        }
+
+        public boolean isLast() {
+            return index == size - 1;
         }
 
         public boolean isOdd() {
@@ -223,7 +247,7 @@ public class TemplateEngine {
 
         public static Iterable<ForEachStat> each(Object values) {
             var it = Sys.iterator(values);
-            var stat = new ForEachStat();
+            var stat = new ForEachStat(size(values));
             return new Iterable<ForEachStat>() {
                 @Override
                 public Iterator<ForEachStat> iterator() {

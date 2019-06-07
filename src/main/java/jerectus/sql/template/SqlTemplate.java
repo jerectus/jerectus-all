@@ -12,10 +12,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import org.apache.commons.jexl3.JexlContext;
-import org.apache.commons.jexl3.internal.Closure;
-
-import jerectus.io.IO;
 import jerectus.sql.parser.Cursor;
 import jerectus.sql.parser.SqlToken;
 import jerectus.sql.parser.SqlTokenizer;
@@ -261,20 +257,20 @@ public class SqlTemplate {
             return o != null && !"".equals(o) && !" ".equals(o) && size(o) != 0;
         }
 
-        public void forEach(JexlContext ctx, Object c, Closure fn) {
-            var stat = new LoopStat();
-            stat.size = size(c);
-            stat.index = 0;
-            stat.count = 1;
-            stat.first = true;
-            for (var it : Sys.each(c)) {
-                stat.last = stat.count == stat.size;
-                fn.execute(ctx, it, stat);
-                stat.index++;
-                stat.count++;
-                stat.first = false;
-            }
-        }
+        // public void forEach(JexlContext ctx, Object c, Closure fn) {
+        // var stat = new LoopStat();
+        // stat.size = size(c);
+        // stat.index = 0;
+        // stat.count = 1;
+        // stat.first = true;
+        // for (var it : Sys.each(c)) {
+        // stat.last = stat.count == stat.size;
+        // fn.execute(ctx, it, stat);
+        // stat.index++;
+        // stat.count++;
+        // stat.first = false;
+        // }
+        // }
 
         private static int size(Object o) {
             if (o == null) {

@@ -56,7 +56,7 @@ public class SqlTokenizer {
         });
     }
 
-    public List<String> splitStatement(String sql) {
+    public Iterable<String> splitStatement1(String sql) {
         var result = new ArrayList<String>();
         var sb = new StringBuilder();
         for (var token : parse(sql + ";")) {
@@ -71,5 +71,25 @@ public class SqlTokenizer {
             }
         }
         return result;
+    }
+
+    public Iterable<String> splitStatement(String sql) {
+        var it = parse(sql + ";").iterator();
+        return Sys.iterable(g -> {
+            var sb = new StringBuilder();
+            while (it.hasNext()) {
+                var token = it.next();
+                if (token.matches(";") || token.is("end")) {
+                    var s = sb.toString().trim();
+                    if (!s.isEmpty()) {
+                        g.yield(s);
+                        return;
+                    }
+                    sb.setLength(0);
+                } else {
+                    sb.append(token);
+                }
+            }
+        });
     }
 }
