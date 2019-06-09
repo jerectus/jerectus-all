@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
 import jerectus.io.IO;
@@ -33,6 +34,15 @@ public class Db implements AutoCloseable {
 
     public static Db open(String url, String user, String password) {
         return Try.get(() -> new Db(DriverManager.getConnection(url, user, password)));
+    }
+
+    public static Db open() {
+        var prop = new Properties();
+        Try.run(() -> prop.load(Db.class.getResourceAsStream("/jdbc.properties")));
+        var url = prop.getProperty("jdbc.url");
+        var user = prop.getProperty("jdbc.user");
+        var password = prop.getProperty("jdbc.password");
+        return open(url, user, password);
     }
 
     @Override

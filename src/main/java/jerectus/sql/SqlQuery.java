@@ -4,31 +4,30 @@ import java.nio.file.Path;
 import java.sql.Connection;
 import java.util.function.Supplier;
 
-import jerectus.io.IO;
-import jerectus.sql.internal.SqlFile;
 import jerectus.sql.template.SqlTemplate;
+import jerectus.util.Resources;
 
 public class SqlQuery {
     private SqlTemplate template;
 
-    public SqlQuery(Supplier<String> fn) {
-        template = new SqlTemplate(fn);
+    public SqlQuery(SqlTemplate template) {
+        this.template = template;
     }
 
     public static SqlQuery of(Supplier<String> fn) {
-        return new SqlQuery(fn);
+        return new SqlQuery(new SqlTemplate(fn));
     }
 
     public static SqlQuery of(String sql) {
-        return new SqlQuery(() -> sql);
+        return new SqlQuery(new SqlTemplate(sql));
     }
 
     public static SqlQuery of(Path sqlPath) {
-        return new SqlQuery(() -> IO.load(sqlPath));
+        return new SqlQuery(new SqlTemplate(sqlPath));
     }
 
     public static SqlQuery fromResource(Object o, String name) {
-        return of(SqlFile.get(o, name));
+        return of(Resources.getMember(o, name + ".sql"));
     }
 
     public <T> TypedSqlQuery<T> as(Class<T> type) {

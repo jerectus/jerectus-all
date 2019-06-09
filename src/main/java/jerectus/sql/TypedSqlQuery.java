@@ -13,7 +13,7 @@ public class TypedSqlQuery<T> {
     }
 
     TypedSqlQuery(Class<T> type, Supplier<String> fn) {
-        this(type, new SqlQuery(fn));
+        this(type, SqlQuery.of(fn));
     }
 
     public TypedSqlQueryResult<T> execute(Connection conn, Object param) {

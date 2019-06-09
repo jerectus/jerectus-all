@@ -224,4 +224,14 @@ public class Sys {
         fn.accept(it);
         return it;
     }
+
+    public static void closeQuietly(AutoCloseable c) {
+        if (c != null) {
+            try {
+                c.close();
+            } catch (Exception e) {
+                // do nothing
+            }
+        }
+    }
 }

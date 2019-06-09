@@ -17,6 +17,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import jerectus.sql.internal.Classes;
 import jerectus.util.Sys;
+import jerectus.util.function.TryBiConsumer;
 import jerectus.util.function.TryConsumer;
 import jerectus.util.logging.Logger;
 
@@ -60,18 +61,10 @@ public class SqlQueryResult implements AutoCloseable {
 
     @Override
     public void close() {
-        try {
-            if (rs != null) {
-                rs.close();
-                rs = null;
-            }
-            if (stmt != null) {
-                stmt.close();
-                stmt = null;
-            }
-        } catch (SQLException e) {
-            throw Sys.asRuntimeException(e);
-        }
+        Sys.closeQuietly(rs);
+        rs = null;
+        Sys.closeQuietly(stmt);
+        rs = null;
     }
 
     public SqlQueryResult limit(int offset, int limitRows) {
@@ -83,7 +76,7 @@ public class SqlQueryResult implements AutoCloseable {
     private void execute() throws SQLException {
         log.info("sql:", sql, params);
         stmt = conn.prepareStatement(sql);
-        if (params != null && params.size() > 0) {
+        if (params != null) {
             for (int i = 0; i < params.size(); i++) {
                 stmt.setObject(i + 1, params.get(i));
             }
@@ -153,10 +146,40 @@ public class SqlQueryResult implements AutoCloseable {
         return om.convertValue(result.containsKey(name) ? result.get(name) : result, type);
     }
 
-    public void forEach(TryConsumer<SqlQueryResult> fn) {
+    public void forEach(TryConsumer<Map<String, Object>> fn) {
         try {
             while (next()) {
-                fn.accept(this);
+                fn.accept(get());
+            }
+        } finally {
+            close();
+        }
+    }
+
+    public <T> void forEach(Class<T> type, TryConsumer<T> fn) {
+        try {
+            while (next()) {
+                fn.accept(get(type));
+            }
+        } finally {
+            close();
+        }
+    }
+
+    public void forEach(TryBiConsumer<Map<String, Object>, SqlQueryResult> fn) {
+        try {
+            while (next()) {
+                fn.accept(get(), this);
+            }
+        } finally {
+            close();
+        }
+    }
+
+    public <T> void forEach(Class<T> type, TryBiConsumer<T, SqlQueryResult> fn) {
+        try {
+            while (next()) {
+                fn.accept(get(type), this);
             }
         } finally {
             close();
@@ -181,7 +204,7 @@ public class SqlQueryResult implements AutoCloseable {
 
     public <T> List<T> toList(Class<T> type) {
         List<T> result = new ArrayList<>();
-        forEach(rs -> result.add(rs.get(type, null)));
+        forEach(type, row -> result.add(row));
         return result;
     }
 }

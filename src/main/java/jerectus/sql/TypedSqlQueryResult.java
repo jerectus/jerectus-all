@@ -25,15 +25,11 @@ public class TypedSqlQueryResult<T> implements AutoCloseable {
     }
 
     public void forEach(TryConsumer<T> fn) {
-        sqlQueryResult.forEach(rs -> {
-            fn.accept(rs.get(resultType, null));
-        });
+        sqlQueryResult.forEach(resultType, fn);
     }
 
     public void forEach(TryBiConsumer<T, SqlQueryResult> fn) {
-        sqlQueryResult.forEach(rs -> {
-            fn.accept(rs.get(resultType, null), rs);
-        });
+        sqlQueryResult.forEach(resultType, fn);
     }
 
     public T first() {

@@ -17,4 +17,9 @@ public class Resources {
         Class<?> clazz = o == null ? ClassLoader.class : o instanceof Class ? (Class<?>) o : o.getClass();
         return IO.load(get(clazz, path));
     }
+
+    public static Path getMember(Object o, String name) {
+        Class<?> clazz = o instanceof Class ? (Class<?>) o : o.getClass();
+        return get(clazz, "res/" + clazz.getSimpleName() + "/" + name);
+    }
 }

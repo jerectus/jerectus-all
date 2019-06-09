@@ -253,8 +253,10 @@ public class SqlBuilder<T> {
             sb.append(table.name);
             sb.append(".*");
         }
-        sb.append(", ' ' \"@\"");
-        sb.append(computed);
+        if (computed.length() > 0) {
+            sb.append(", ' ' \"@\"");
+            sb.append(computed);
+        }
         sb.append(" ");
         sb.append(sql);
         return sb.toString();
