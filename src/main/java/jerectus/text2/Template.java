@@ -1,4 +1,4 @@
-package jerectus.text;
+package jerectus.text2;
 
 import java.io.PrintStream;
 import java.io.PrintWriter;
@@ -9,8 +9,6 @@ import java.util.LinkedHashMap;
 import org.apache.commons.jexl3.JexlContext;
 import org.apache.commons.jexl3.JexlScript;
 import org.apache.commons.jexl3.internal.Closure;
-
-import jerectus.util.Try;
 
 public class Template {
     private Template parent;
@@ -42,12 +40,10 @@ public class Template {
 
     public void writeTo(Object context, PrintStream out) {
         writeTo0(context, out);
-        out.println();
     }
 
     public void writeTo(Object context, Writer out) {
         writeTo0(context, out instanceof PrintWriter ? out : new PrintWriter(out));
-        Try.run(() -> out.flush());
     }
 
     public String execute(Object context) {

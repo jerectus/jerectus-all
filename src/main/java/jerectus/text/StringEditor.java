@@ -1,6 +1,6 @@
 package jerectus.text;
 
-public class StringEditor {
+public class StringEditor implements CharSequence {
     private StringBuilder sb;
 
     public StringEditor(StringBuilder sb) {
@@ -11,9 +11,30 @@ public class StringEditor {
         this(new StringBuilder());
     }
 
-    public void append(Object... values) {
+    @Override
+    public String toString() {
+        return sb.toString();
+    }
+
+    @Override
+    public int length() {
+        return sb.length();
+    }
+
+    @Override
+    public char charAt(int index) {
+        return sb.charAt(index);
+    }
+
+    @Override
+    public CharSequence subSequence(int start, int end) {
+        return sb.subSequence(start, end);
+    }
+
+    public StringEditor append(Object... values) {
         for (var value : values) {
             sb.append(value);
         }
+        return this;
     }
 }

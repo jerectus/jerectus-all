@@ -1,0 +1,4 @@
+start
+<%%block main%>
+<%%end-block%>
+end

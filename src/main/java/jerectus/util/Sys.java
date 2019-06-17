@@ -14,6 +14,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Sys {
+    public static String toString(Object value, String other) {
+        return value != null ? value.toString() : other;
+    }
+
+    public static String toString(Object value) {
+        return toString(value, null);
+    }
+
     public static <T> boolean eq(T a, T b) {
         if (a == b)
             return true;
@@ -91,6 +99,8 @@ public class Sys {
     }
 
     public static Map<String, Object> populate(Object bean) {
+        if (bean == null)
+            return null;
         var map = new LinkedHashMap<String, Object>();
         BeanProperty.getProperties(bean.getClass()).forEach(p -> map.put(p.getName(), p.get(bean)));
         return map;
@@ -147,6 +157,10 @@ public class Sys {
             sb.append(fn.apply(it));
         }
         return sb.toString();
+    }
+
+    public static String join(String[] o, String delim, Function<String, String> fn) {
+        return join(new ArrayIterable<String>(o), delim, fn);
     }
 
     @SuppressWarnings("unchecked")

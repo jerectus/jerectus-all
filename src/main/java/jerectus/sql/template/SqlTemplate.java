@@ -22,7 +22,8 @@ import jerectus.util.logging.Logger;
 
 public class SqlTemplate {
     private static final Logger log = Logger.getLogger(SqlTemplate.class);
-    private static final TemplateEngine engine = new TemplateEngine().preprocessor(SqlTemplate::preprocess);
+    private static final TemplateEngine engine = new TemplateEngine(b -> b.strict(false))
+            .preprocessor(SqlTemplate::preprocess);
     // private Supplier<String> sqlSupplier;
     // private String sql;
     // private Template sqlTemplate;
@@ -92,9 +93,10 @@ public class SqlTemplate {
     }
 
     public Result process(Object context) {
-        Map<String, Object> bindings = new jerectus.sql.template.Param(context);
+        Map<String, Object> bindings = context instanceof Map ? Sys.cast(context) : Sys.populate(context);
         var ctx = new SQL();
         bindings.put("sql", ctx);
+        // bindings.put("__has", true);
         String sql = getTemplate().execute(bindings);
         for (;;) {
             sql = sql.replaceAll("\u007f(,|\\s+|\u007f|and\\b|or\\b)*\u007f", "\u007f");
@@ -283,14 +285,6 @@ public class SqlTemplate {
             } else {
                 return 1;
             }
-        }
-
-        public static class LoopStat {
-            public int size;
-            public int index;
-            public int count;
-            public boolean first;
-            public boolean last;
         }
     }
 }

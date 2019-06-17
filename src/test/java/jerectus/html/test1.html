@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>test1</title>
+</head>
+
+<!--%
+var list = [1, 10, 100];
+-->
+
+<body>
+    hello ${name}.
+    <ul>
+        <li v:bind="for: it in list;">
+            <input name=":it">
+        </li>
+        <input name=":name">
+    </ul>
+</body>
+
+</html>

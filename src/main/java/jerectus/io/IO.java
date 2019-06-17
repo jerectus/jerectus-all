@@ -26,4 +26,8 @@ public class IO {
     public static void save(String path, CharSequence content) {
         save(Paths.get(path), content);
     }
+
+    public static String getExtention(Path p) {
+        return p.toString().replaceAll(".*(\\.[^/\\\\]+)", "$1");
+    }
 }

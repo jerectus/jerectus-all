@@ -11,6 +11,7 @@ public class SqlTemplateTest {
         var path = Paths.get(getClass().getResource("test1.sql").toURI());
         var tpl = new SqlTemplate(path);
         var vars = new HashMap<>();
+        // vars.put("id", 1);
         vars.put("IDs", new int[] { 1, 22, 333 });
         System.out.println(tpl.process(vars));
     }

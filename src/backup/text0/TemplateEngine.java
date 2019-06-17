@@ -1,12 +1,14 @@
 package jerectus.text;
 
+import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 
@@ -14,32 +16,19 @@ import org.apache.commons.collections4.map.LRUMap;
 import org.apache.commons.jexl3.JexlBuilder;
 import org.apache.commons.jexl3.JexlEngine;
 
-import jerectus.io.IO;
-import jerectus.text.PatternMatcher;
 import jerectus.util.Sys;
 import jerectus.util.Try;
 
 public class TemplateEngine {
-    private JexlEngine engine;
-    private Function<String, String> preprocessor = s -> s;
-    private LRUMap<String, Template> templateCache = new LRUMap<>();
-
-    public TemplateEngine(Consumer<JexlBuilder> fn) {
+    private static final JexlEngine engine;
+    static {
         var ns = new HashMap<String, Object>();
         ns.put("tf", TemplateFunctions.class);
-        var jb = new JexlBuilder().namespaces(ns);
-        fn.accept(jb);
-        engine = jb.create();
+        engine = new JexlBuilder().namespaces(ns).create();
     }
 
-    public TemplateEngine(Class<? extends TemplateFunctions> functionClass) {
-        this(b -> b.namespaces().put("tf", functionClass));
-    }
-
-    public TemplateEngine() {
-        this(b -> {
-        });
-    }
+    private Function<String, String> preprocessor = s -> s;
+    private LRUMap<String, Template> templateCache = new LRUMap<>();
 
     public TemplateEngine preprocessor(Function<String, String> preprocessor) {
         this.preprocessor = preprocessor;
@@ -86,20 +75,20 @@ public class TemplateEngine {
             s = Try.get(() -> Files.readString(path, StandardCharsets.UTF_8));
         }
         s = preprocessor.apply(s);
-        System.out.println(s);
-        var blocks = new StringEditor();
+        // System.out.println(s);
+        var blocks = new StringBuilder();
         var pm = new PatternMatcher();
-        Template parent = path != null && pm.matches(s, "(?s)<%%extends\\s+(\\w+).*?%>.*")
-                ? getTemplate(path.resolveSibling(pm.group(1) + IO.getExtention(path)))
+        Template parent = path != null && pm.matches(s, "(?s)<%%extends\\s+(\\w+).*?%>")
+                ? compile(path.resolveSibling(pm.group(1) + ".html"), null)
                 : null;
         blocks.append("<%(function(this) {%>");
         if (parent != null) {
             blocks.append("<%var _super = tf:copy(this);%>");
         }
         s = Sys.replace(s, "(?s)<%%block\\s+(\\w+).*?%>(.*?)<%%end-block%>", m -> {
-            blocks.append("<%this.", m.group(1), " = function() {%>");
+            blocks.append("<%this.").append(m.group(1)).append(" = function() {%>");
             if (parent != null) {
-                blocks.append("<%var super = _super.", m.group(1), ";%>");
+                blocks.append("<%var super = _super.").append(m.group(1)).append(";%>");
             }
             blocks.append(m.group(2));
             blocks.append("<%};%>");
@@ -107,7 +96,6 @@ public class TemplateEngine {
         });
         if (parent == null) {
             blocks.append("<%this.__render__ = function() {%>");
-            blocks.append("<%var __ctx = __root;%>");
             blocks.append(s);
             blocks.append("<%};%>");
         }
@@ -115,12 +103,18 @@ public class TemplateEngine {
         s = blocks.toString();
         // System.out.println(s);
         var m = TEMPLATE_PTN.matcher(s);
-        var sb = new StringEditor();
+        var sb = new StringBuilder();
         int pos = 0;
         var fn = new Object() {
+            void append(Object... params) {
+                for (var v : params) {
+                    sb.append(v);
+                }
+            }
+
             void printRaw(String s) {
                 if (!Sys.isEmpty(s)) {
-                    sb.append("out.print(", escape(s), ");");
+                    append("out.print(", escape(s), ");");
                 }
             }
 
@@ -129,7 +123,7 @@ public class TemplateEngine {
                     s = s.trim();
                 }
                 if (!Sys.isEmpty(s)) {
-                    sb.append("out.print(", s, ");");
+                    append("out.print(tf:escape(", s, "));");
                 }
             }
 
@@ -140,33 +134,30 @@ public class TemplateEngine {
             }
 
             void code(String s) {
-                sb.append(s);
+                append(s);
             }
 
             void logic(String s) {
                 var p = new PatternMatcher();
                 if (p.matches(s, "if\\b(.*)")) {
-                    sb.append("if(", m.group(1), "){");
+                    append("if(", m.group(1), "){");
                 } else if (p.matches(s, "else-if\\b(.*)")) {
-                    sb.append("}else if(", m.group(1), "){");
+                    append("}else if(", m.group(1), "){");
                 } else if (p.matches(s, "else\\b(.*)")) {
-                    sb.append("}else{");
-                } else if (p.matches(s, "end-if\\b(.*)")) {
-                    sb.append("}");
-                } else if (p.matches(s, "for\\s+((\\w+)\\s*(,\\s*(\\w+))?\\s*(:|\\bin\\b))?\\s*([^;]+)(;.*)?")) {
+                    append("}else{");
+                } else if (p.matches(s, "end\\b(.*)")) {
+                    append("}");
+                } else if (p.matches(s, "for\\s+((\\w+)\\s*(,\\s*(\\w+))?\\s*:)?\\s*([^;]+)(;.*)?")) {
                     var iter = Sys.ifEmpty(p.group(2), "it");
                     var stat = Sys.ifEmpty(p.group(4), iter + "$");
-                    var list = p.group(6).trim();
-                    var options = p.group(7) == null ? "" : p.group(7).substring(1).trim();
-                    sb.append("__ctx.forEach(", list, ", `", list, "`, `", iter, "`, function(__ctx, ", iter, ", ",
-                            stat, "){");
+                    var list = p.group(5).trim();
+                    var options = p.group(6).substring(1).trim();
+                    append("for(var ", stat, " : tf:each(", list, ")){var ", iter, " = ", stat, ".value;");
                     if (p.matches(options, "delim\\s*=\\s*(\"[^\"]+\"|'[^']+'|`([^`]|\\`)+`)")) {
-                        sb.append("if(!__ctx.first){out.print(", p.group(1), ");}");
+                        append("if(!", stat, ".first){out.print(", p.group(1), ");}");
                     }
-                } else if (p.matches(s, "end-for\\b(.*)")) {
-                    sb.append("});");
                 } else if (p.matches(s, "super\\s*")) {
-                    sb.append("super();");
+                    append("super();");
                 }
             }
         };
@@ -188,7 +179,95 @@ public class TemplateEngine {
         return new Template(parent, engine.createScript(sb.toString()));
     }
 
+    private static int size(Object o) {
+        if (o == null) {
+            return 0;
+        } else if (o instanceof Collection) {
+            Collection<Object> c = Sys.cast(o);
+            return c.size();
+        } else if (o.getClass().isArray()) {
+            return Array.getLength(o);
+        } else {
+            return 1;
+        }
+    }
+
+    public static class ForEachStat {
+        int size;
+        Object value;
+        int index = -1;
+
+        public ForEachStat(int size) {
+            this.size = size;
+        }
+
+        public Object getValue() {
+            return value;
+        }
+
+        public int getIndex() {
+            return index;
+        }
+
+        public int getCount() {
+            return index + 1;
+        }
+
+        public boolean isFirst() {
+            return index == 0;
+        }
+
+        public boolean isLast() {
+            return index == size - 1;
+        }
+
+        public boolean isOdd() {
+            return index % 2 == 0;
+        }
+
+        public boolean isEven() {
+            return index % 2 == 1;
+        }
+    }
+
     public static class TemplateFunctions {
+        public static String escape(Object s) {
+            return s == null ? null : Sys.replace(s.toString(), "[<>&]", m -> {
+                switch (m.group().charAt(0)) {
+                case '<':
+                    return "&gt;";
+                case '>':
+                    return "&lt;";
+                case '&':
+                    return "&amp;";
+                }
+                return m.group();
+            });
+        }
+
+        public static Iterable<ForEachStat> each(Object values) {
+            var it = Sys.iterator(values);
+            var stat = new ForEachStat(size(values));
+            return new Iterable<ForEachStat>() {
+                @Override
+                public Iterator<ForEachStat> iterator() {
+                    return new Iterator<ForEachStat>() {
+                        @Override
+                        public boolean hasNext() {
+                            return it.hasNext();
+                        }
+
+                        @Override
+                        public ForEachStat next() {
+                            stat.value = it.next();
+                            stat.index++;
+                            return stat;
+                        }
+                    };
+                }
+            };
+        }
+
         public static Map<String, Object> copy(Map<String, Object> map) {
             return new LinkedHashMap<>(map);
         }
