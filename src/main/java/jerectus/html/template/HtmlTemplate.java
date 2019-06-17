@@ -9,11 +9,9 @@ import java.util.stream.Stream;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Comment;
-import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
-import org.jsoup.select.NodeVisitor;
 
 import jerectus.text.PatternMatcher;
 import jerectus.text.StringEditor;
@@ -23,63 +21,6 @@ import jerectus.text.TemplateEngine;
 import jerectus.text.TemplateEngine.TemplateFunctions;
 import jerectus.util.Sys;
 
-class HtmlVisitor implements NodeVisitor {
-    @Override
-    public void head(Node node, int depth) {
-        if (node instanceof Document) {
-            visit((Document) node);
-        } else if (node instanceof Element) {
-            visit((Element) node);
-        } else if (node instanceof TextNode) {
-            visit((TextNode) node);
-        } else if (node instanceof Comment) {
-            visit((Comment) node);
-        } else {
-            visit(node);
-        }
-    }
-
-    @Override
-    public void tail(Node node, int depth) {
-        if (node instanceof Element) {
-            var elem = (Element) node;
-            leave(elem, hasEndTag(elem));
-        }
-    }
-
-    public void visit(Document elem) {
-    }
-
-    public void leave(Document elem) {
-    }
-
-    public void visit(Element elem) {
-    }
-
-    public void leave(Element elem, boolean hasEndTag) {
-        if (hasEndTag(elem)) {
-            leave(elem);
-        }
-    }
-
-    public void leave(Element elem) {
-    }
-
-    public void visit(TextNode elem) {
-    }
-
-    public void visit(Comment elem) {
-    }
-
-    public void visit(Node node) {
-    }
-
-    private static boolean hasEndTag(Element elem) {
-        return !(elem instanceof Document)
-                && !elem.tagName().matches("br|img|hr|meta|input|embed|area|base|col|keygen|link|param|source");
-    }
-}
-
 public class HtmlTemplate {
     private static final TemplateEngine engine = new TemplateEngine(Statics.class);
     private Template tmpl;
@@ -88,7 +29,10 @@ public class HtmlTemplate {
         try {
             var doc = Jsoup.parse(path.toFile(), "UTF-8", "");
             doc.outputSettings().prettyPrint(false);
+            System.out.println(doc);
+            doc.insertChildren(0, new TextNode("\n"));
             var html = doc.selectFirst("html");
+            html.parent().prepend("\r\n");
             var body = html.selectFirst("body");
             for (int i = body.childNodeSize() - 1; i >= 0; i--) {
                 var t = body.childNode(i);
@@ -203,7 +147,7 @@ public class HtmlTemplate {
                 }
             });
             var src = sb.toString();
-            System.out.println(src);
+            // System.out.println(src);
             tmpl = engine.createTemplate(src);
         } catch (Exception e) {
             throw Sys.asRuntimeException(e);
@@ -247,8 +191,8 @@ public class HtmlTemplate {
                 if (!(node instanceof TextNode) || !((TextNode) node).text().matches("\\s*")) {
                     node = elem;
                 }
-                node.before(new Comment("%%" + m.group(1) + " " + m.group(2)));
-                elem.after(new Comment("%%end-" + m.group(1)));
+                node.before(new Comment("%" + m.group(1) + " " + m.group(2)));
+                elem.after(new Comment("%end-" + m.group(1)));
             }
         });
     }
@@ -261,8 +205,11 @@ public class HtmlTemplate {
             return "<%=tf:encode(" + m.group(1).trim() + ", '@')%>";
         } else if (m.matches(code, "=(.*)")) {
             return "<%=tf:encode(" + m.group(1).trim() + ", '')%>";
+        } else if (code.startsWith("%")) {
+            return "<%" + code.substring(1).trim() + "%>";
+        } else {
+            return "<%%" + code + "%>";
         }
-        return "<%" + code + "%>";
     }
 
     public static class Statics extends TemplateFunctions {
