@@ -15,7 +15,8 @@ import org.apache.commons.jexl3.JexlBuilder;
 import org.apache.commons.jexl3.JexlEngine;
 
 import jerectus.io.IO;
-import jerectus.text.PatternMatcher;
+import jerectus.util.regex.PatternMatcher;
+import jerectus.util.regex.Regex;
 import jerectus.util.Sys;
 import jerectus.util.Try;
 
@@ -65,7 +66,7 @@ public class TemplateEngine {
     static final Pattern ESCAPE_PTN = Pattern.compile("[\\\\`\\$]");
 
     public static String escape(String s) {
-        return "`" + Sys.replace(s, ESCAPE_PTN, m -> {
+        return "`" + Regex.replace(s, ESCAPE_PTN, m -> {
             switch (m.group().charAt(0)) {
             case '\\':
                 return "\\\\";
@@ -86,7 +87,6 @@ public class TemplateEngine {
             s = Try.get(() -> Files.readString(path, StandardCharsets.UTF_8));
         }
         s = preprocessor.apply(s);
-        System.out.println(s);
         var blocks = new StringEditor();
         var pm = new PatternMatcher();
         Template parent = path != null && pm.matches(s, "(?s)<%%extends\\s+(\\w+).*?%>.*")
@@ -96,7 +96,7 @@ public class TemplateEngine {
         if (parent != null) {
             blocks.append("<%var _super = tf:copy(this);%>");
         }
-        s = Sys.replace(s, "(?s)<%%block\\s+(\\w+).*?%>(.*?)<%%end-block%>", m -> {
+        s = Regex.replace(s, "(?s)<%%block\\s+(\\w+).*?%>(.*?)<%%end-block%>", m -> {
             blocks.append("<%this.", m.group(1), " = function() {%>");
             if (parent != null) {
                 blocks.append("<%var super = _super.", m.group(1), ";%>");
@@ -107,7 +107,6 @@ public class TemplateEngine {
         });
         if (parent == null) {
             blocks.append("<%this.__render__ = function() {%>");
-            blocks.append("<%var __ctx = __root;%>");
             blocks.append(s);
             blocks.append("<%};%>");
         }
@@ -158,10 +157,10 @@ public class TemplateEngine {
                     var stat = Sys.ifEmpty(p.group(4), iter + "$");
                     var list = p.group(6).trim();
                     var options = p.group(7) == null ? "" : p.group(7).substring(1).trim();
-                    sb.append("__ctx.forEach(", list, ", `", list, "`, `", iter, "`, function(__ctx, ", iter, ", ",
-                            stat, "){");
+                    sb.append("__ctx.forEach(", list, ", `", list, "`, `", iter, "`, function(", iter, ", ", stat,
+                            "){");
                     if (p.matches(options, "delim\\s*=\\s*(\"[^\"]+\"|'[^']+'|`([^`]|\\`)+`)")) {
-                        sb.append("if(!__ctx.first){out.print(", p.group(1), ");}");
+                        sb.append("if(!", stat, ".first){out.print(", p.group(1), ");}");
                     }
                 } else if (p.matches(s, "end-for\\b(.*)")) {
                     sb.append("});");
@@ -184,7 +183,6 @@ public class TemplateEngine {
             pos = m.end();
         }
         fn.text(s.substring(pos));
-        System.out.println(sb);
         return new Template(parent, engine.createScript(sb.toString()));
     }
 

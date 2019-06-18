@@ -13,6 +13,7 @@ import org.apache.commons.jexl3.internal.Closure;
 import jerectus.util.Try;
 
 public class Template {
+    private static ThreadLocal<TemplateContext> currentContext = new ThreadLocal<>();
     private Template parent;
     private JexlScript script;
 
@@ -29,7 +30,8 @@ public class Template {
     }
 
     private void writeTo0(Object context, Object out) {
-        var ctx = new TemplateContext(context);
+        var ctx = context instanceof TemplateContext ? (TemplateContext) context : new TemplateContext(context);
+        currentContext.set(ctx);
         var tmplObj = new LinkedHashMap<String, Object>();
         ctx.set("this", tmplObj);
         ctx.set("out", out);
@@ -38,6 +40,7 @@ public class Template {
         if (render instanceof Closure) {
             ((Closure) render).execute(ctx);
         }
+        currentContext.set(null);
     }
 
     public void writeTo(Object context, PrintStream out) {
@@ -54,5 +57,9 @@ public class Template {
         var out = new StringWriter();
         writeTo(context, out);
         return out.toString();
+    }
+
+    public static TemplateContext currentContext() {
+        return currentContext.get();
     }
 }

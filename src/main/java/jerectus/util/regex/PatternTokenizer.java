@@ -1,4 +1,4 @@
-package jerectus.text;
+package jerectus.util.regex;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

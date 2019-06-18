@@ -1,5 +1,6 @@
 package jerectus.util;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.util.Arrays;
 import java.util.Collection;
@@ -10,8 +11,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
+import jerectus.util.regex.Regex;
 
 public class Sys {
     public static String toString(Object value, String other) {
@@ -79,7 +80,7 @@ public class Sys {
     }
 
     public static String camelCase(String s) {
-        return Sys.replace(s.toLowerCase(), "_(\\w)", m -> m.group(1).toUpperCase());
+        return Regex.replace(s.toLowerCase(), "_(\\w)", m -> m.group(1).toUpperCase());
     }
 
     public static String snakeCase(String s) {
@@ -106,26 +107,14 @@ public class Sys {
         return map;
     }
 
-    public static String replace(String text, Pattern ptn, Function<Matcher, String> fn) {
-        StringBuilder sb = new StringBuilder();
-        Matcher m = ptn.matcher(text);
-        int i = 0;
-        while (m.find()) {
-            sb.append(text.substring(i, m.start()));
-            sb.append(fn.apply(m));
-            i = m.end();
-        }
-        sb.append(text.substring(i));
-        return sb.toString();
-    }
-
-    public static String replace(String text, String ptn, Function<Matcher, String> fn) {
-        return replace(text, Pattern.compile(ptn), fn);
-    }
-
     @SuppressWarnings("unchecked")
     public static <T> T cast(Object value) {
         return (T) value;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T, R> R cast(T value, Class<R> clazz, Function<T, R> fn) {
+        return clazz.isAssignableFrom(value.getClass()) ? (R) value : fn.apply(value);
     }
 
     public static <T> void addAll(Collection<T> c, T[] values) {
@@ -225,6 +214,19 @@ public class Sys {
                 fn.accept(this);
             }
         };
+    }
+
+    public static int size(Object o) {
+        if (o == null) {
+            return 0;
+        } else if (o instanceof Collection) {
+            Collection<Object> c = Sys.cast(o);
+            return c.size();
+        } else if (o.getClass().isArray()) {
+            return Array.getLength(o);
+        } else {
+            return 1;
+        }
     }
 
     public static <T, C extends Collection<T>> C copy(C c, Iterable<T> it) {

@@ -3,7 +3,7 @@ package jerectus.sql.parser;
 import java.util.ArrayList;
 import java.util.List;
 
-import jerectus.text.PatternTokenizer;
+import jerectus.util.regex.PatternTokenizer;
 import jerectus.util.Sys;
 
 public class SqlTokenizer {

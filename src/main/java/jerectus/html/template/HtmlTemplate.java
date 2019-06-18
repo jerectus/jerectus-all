@@ -13,13 +13,14 @@ import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
 
-import jerectus.text.PatternMatcher;
 import jerectus.text.StringEditor;
 import jerectus.text.Template;
 import jerectus.text.TemplateContext;
 import jerectus.text.TemplateEngine;
 import jerectus.text.TemplateEngine.TemplateFunctions;
 import jerectus.util.Sys;
+import jerectus.util.regex.PatternMatcher;
+import jerectus.util.regex.Regex;
 
 public class HtmlTemplate {
     private static final TemplateEngine engine = new TemplateEngine(Statics.class);
@@ -164,7 +165,7 @@ public class HtmlTemplate {
         if (ctx.equals("@")) {
             s = Statics.encode(s, "@");
         }
-        return Sys.replace(s, ptn, m -> {
+        return Regex.replace(s, ptn, m -> {
             switch (m.group()) {
             case "\\":
                 return "\\\\";

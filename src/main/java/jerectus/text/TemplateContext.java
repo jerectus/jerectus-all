@@ -1,6 +1,7 @@
 package jerectus.text;
 
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import org.apache.commons.jexl3.JexlContext;
 import org.apache.commons.jexl3.MapContext;
@@ -10,14 +11,13 @@ import jerectus.util.Sys;
 
 public class TemplateContext implements JexlContext {
     JexlContext ctx;
+    EachStat eachStat;
 
-    public TemplateContext(JexlContext ctx) {
-        this.ctx = ctx;
-    }
-
+    @SuppressWarnings("unchecked")
     public TemplateContext(Object vars) {
-        this(new MapContext(vars instanceof Map ? Sys.cast(vars) : Sys.populate(vars)));
-        set("__root", this);
+        ctx = vars instanceof JexlContext ? (JexlContext) vars
+                : new MapContext(vars instanceof Map ? (Map<String, Object>) vars : Sys.populate(vars));
+        set("__ctx", this);
     }
 
     @Override
@@ -32,21 +32,28 @@ public class TemplateContext implements JexlContext {
 
     @Override
     public boolean has(String name) {
-        return ctx.has("__has") || ctx.has(name);
-    }
-
-    public EachContext each(Object values, String valuesExpr, String varName) {
-        return new EachContext(this, values, valuesExpr, varName);
+        return ctx.has(name);
     }
 
     public void forEach(Object values, String valuesExpr, String varName, Closure fn) {
-        var e = new EachContext(this, values, valuesExpr, varName);
-        for (var it : e) {
-            fn.execute(e, e, it.value, it);
+        eachStat = new EachStat(eachStat, values, valuesExpr, varName, nameof(valuesExpr));
+        for (var it : eachStat) {
+            fn.execute(this, it.value, it);
         }
+        eachStat = eachStat.parent;
     }
 
-    public String nameof(String expr) {
-        return expr;
+    public String nameof(String name) {
+        var p = Pattern.compile("([_a-zA-Z\\$]\\w*)(.*)");
+        var m = p.matcher(name);
+        if (m.matches()) {
+            String rootName = m.group(1);
+            for (var i = eachStat; i != null; i = i.parent) {
+                if (i.varName.equals(rootName)) {
+                    return i.baseName + "[" + i.index + "]" + m.group(2);
+                }
+            }
+        }
+        return name;
     }
 }

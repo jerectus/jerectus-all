@@ -1,6 +1,6 @@
 package jerectus.sql.parser;
 
-import jerectus.text.PatternTokenizer;
+import jerectus.util.regex.PatternTokenizer;
 
 public class SqlToken extends PatternTokenizer.Token {
     public String frontSpace;

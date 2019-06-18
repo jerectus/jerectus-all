@@ -1,12 +1,7 @@
 package jerectus.sql.template;
 
-import java.lang.reflect.Array;
 import java.nio.file.Path;
-import java.sql.PreparedStatement;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -17,16 +12,16 @@ import jerectus.sql.parser.SqlToken;
 import jerectus.sql.parser.SqlTokenizer;
 import jerectus.text.Template;
 import jerectus.text.TemplateEngine;
+import jerectus.text.TemplateEngine.TemplateFunctions;
 import jerectus.util.Sys;
 import jerectus.util.logging.Logger;
 
 public class SqlTemplate {
     private static final Logger log = Logger.getLogger(SqlTemplate.class);
-    private static final TemplateEngine engine = new TemplateEngine(b -> b.strict(false))
-            .preprocessor(SqlTemplate::preprocess);
-    // private Supplier<String> sqlSupplier;
-    // private String sql;
-    // private Template sqlTemplate;
+    private static final TemplateEngine engine = new TemplateEngine(b -> {
+        b.namespaces().put("tf", Functions.class);
+        b.strict(false);
+    }).preprocessor(SqlTemplate::preprocess);
     private Supplier<Template> supplier;
     private Template sqlTemplate;
 
@@ -48,7 +43,7 @@ public class SqlTemplate {
             var t = cursor.get();
             if (t.is("comment1?")) {
                 var m = new Match(t.getContent().trim());
-                if (m.matches("#(if|for|elseif|else|end)\\b.*")) {
+                if (m.matches("#(if|for|else(-if)?|end-(if|for))\\b.*")) {
                     t.value = (m.group(1).matches("if|for") ? "\u007f" : "") + "<%%" + m.group().substring(1) + "%>";
                     t.frontSpace = "";
                     if (cursor.prev().get().is("newline")) {
@@ -58,11 +53,11 @@ public class SqlTemplate {
                     cursor.remove(0);
                     encloseLine(cursor, String.format("<%%if(%s){%%>", m.group(1)), "<%}else{%>\u007f<%}%>");
                 } else if (m.matches(":(%)?(\\w+)(%)?(\\?)?")) {
-                    t.value = String.format("<%%=sql.bind(%s, %s, %s)%%>", m.group(2), m.group(1) != null,
+                    t.value = String.format("<%%=__ctx.bind(%s, %s, %s)%%>", m.group(2), m.group(1) != null,
                             m.group(3) != null);
                     cursor.remove(1);
                     if (m.group(4) != null) {
-                        encloseLine(cursor, String.format("<%%if(sql.isNotEmpty(%s)){%%>", m.group(2)),
+                        encloseLine(cursor, String.format("<%%if(tf:isNotEmpty(%s)){%%>", m.group(2)),
                                 "<%}else{%>\u007f<%}%>");
                     }
                 } else if (m.matches("(@.*)")) {
@@ -92,16 +87,15 @@ public class SqlTemplate {
         return sqlTemplate;
     }
 
-    public Result process(Object context) {
-        Map<String, Object> bindings = context instanceof Map ? Sys.cast(context) : Sys.populate(context);
-        var ctx = new SQL();
-        bindings.put("sql", ctx);
-        // bindings.put("__has", true);
-        String sql = getTemplate().execute(bindings);
+    public Result process(Object vars) {
+        var ctx = new SqlTemplateContext(vars);
+        String sql = getTemplate().execute(ctx);
+        log.info("sql:\n", sql.replace('\u007f', '~'));
         for (;;) {
             sql = sql.replaceAll("\u007f(,|\\s+|\u007f|and\\b|or\\b)*\u007f", "\u007f");
             sql = sql.replaceAll(" *,\\s*\u007f\\R?", "");
-            sql = sql.replaceAll("\u007f\\s*?( +),", "$1 ");
+            // sql = sql.replaceAll("\u007f\\s*?( +),", "$1 ");
+            sql = sql.replaceAll("\u007f\\s*,\\s*", "");
             // sql = sql.replaceAll("\u007f[\\s\u007f,]+,", ",");
             // sql = sql.replaceAll("(\\(\\s*)\u007f(\\s*)(,|and\\b|or\\b)\\s*", "$1$2");
             // sql = sql.replaceAll("\u007f[\\s\u007f]*\u007f", "\u007f");
@@ -128,8 +122,7 @@ public class SqlTemplate {
         }
         sql = sql.replaceAll("\\b(" + adjWords + ")\\b[\\s\u007f]*$", "");
         sql = sql.replaceAll(" *\u007f *", "");
-        log.info("sql:", sql);
-        return new Result(sql, ctx.params);
+        return new Result(sql, ctx.getParameters());
     }
 
     private static SqlToken newToken(String type, String value, String frontSpace) {
@@ -167,21 +160,8 @@ public class SqlTemplate {
         }
     }
 
-    public static class SQL {
-        public List<Object> params = new ArrayList<>();
-
-        private static String repeat(String s, int n, String delim) {
-            StringBuilder sql = new StringBuilder();
-            for (int i = 0; i < n; i++) {
-                if (i > 0) {
-                    sql.append(delim);
-                }
-                sql.append(s);
-            }
-            return sql.toString();
-        }
-
-        public String escape(String s, String escapeChar) {
+    public static class Functions extends TemplateFunctions {
+        public static String escape(String s, String escapeChar) {
             if (escapeChar == null) {
                 escapeChar = "~";
             }
@@ -189,102 +169,36 @@ public class SqlTemplate {
                     escapeChar + "_");
         }
 
-        public String escape(String s) {
+        public static String escape(String s) {
             return escape(s, null);
         }
 
-        public String prefix(String s, String escapeChar) {
+        public static String prefix(String s, String escapeChar) {
             return escape(s, escapeChar) + "%";
         }
 
-        public String prefix(String s) {
+        public static String prefix(String s) {
             return prefix(s, null);
         }
 
-        public String suffix(String s, String escapeChar) {
+        public static String suffix(String s, String escapeChar) {
             return "%" + escape(s, escapeChar);
         }
 
-        public String suffix(String s) {
+        public static String suffix(String s) {
             return suffix(s, null);
         }
 
-        public String infix(String s, String escapeChar) {
+        public static String infix(String s, String escapeChar) {
             return "%" + escape(s, escapeChar) + "%";
         }
 
-        public String infix(String s) {
+        public static String infix(String s) {
             return infix(s, null);
         }
 
-        public String bind(Object param, boolean head, boolean tail) {
-            if (param != null) {
-                if (param instanceof Collection) {
-                    Collection<Object> c = Sys.cast(param);
-                    if (c.isEmpty()) {
-                        params.add(null);
-                        return "?";
-                    }
-                    for (var v : c) {
-                        params.add(v);
-                    }
-                    return repeat("?", c.size(), ",");
-                }
-                if (param.getClass().isArray()) {
-                    int n = Array.getLength(param);
-                    if (n == 0) {
-                        params.add(null);
-                        return "?";
-                    }
-                    for (int i = 0; i < n; i++) {
-                        params.add(Array.get(param, i));
-                    }
-                    return repeat("?", n, ",");
-                }
-                if (head || tail) {
-                    param = (head ? "%" : "") + escape(param.toString()) + (tail ? "%" : "");
-                }
-            }
-            params.add(param);
-            return "?";
-        }
-
-        public void bindTo(PreparedStatement stmt) throws Exception {
-            for (int i = 0; i < params.size(); i++) {
-                stmt.setObject(i + 1, params.get(i));
-            }
-        }
-
-        public boolean isNotEmpty(Object o) {
-            return o != null && !"".equals(o) && !" ".equals(o) && size(o) != 0;
-        }
-
-        // public void forEach(JexlContext ctx, Object c, Closure fn) {
-        // var stat = new LoopStat();
-        // stat.size = size(c);
-        // stat.index = 0;
-        // stat.count = 1;
-        // stat.first = true;
-        // for (var it : Sys.each(c)) {
-        // stat.last = stat.count == stat.size;
-        // fn.execute(ctx, it, stat);
-        // stat.index++;
-        // stat.count++;
-        // stat.first = false;
-        // }
-        // }
-
-        private static int size(Object o) {
-            if (o == null) {
-                return 0;
-            } else if (o instanceof Collection) {
-                Collection<Object> c = Sys.cast(o);
-                return c.size();
-            } else if (o.getClass().isArray()) {
-                return Array.getLength(o);
-            } else {
-                return 1;
-            }
+        public static boolean isNotEmpty(Object o) {
+            return o != null && !"".equals(o) && !" ".equals(o) && Sys.size(o) != 0;
         }
     }
 }

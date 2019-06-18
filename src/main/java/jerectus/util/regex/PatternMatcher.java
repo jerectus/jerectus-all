@@ -1,4 +1,4 @@
-package jerectus.text;
+package jerectus.util.regex;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
