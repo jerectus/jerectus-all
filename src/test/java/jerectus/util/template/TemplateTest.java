@@ -41,6 +41,7 @@ public class TemplateTest {
     public void test4() {
         var engine = new TemplateEngine();
         var tmpl = engine.getTemplate(Resources.getMember(this, "test1.txt"));
+        System.out.println(tmpl);
         var vars = new HashMap<>();
         tmpl.writeTo(vars, System.out);
     }

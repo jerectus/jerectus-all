@@ -1,6 +1,5 @@
 package jerectus.html;
 
-import java.io.PrintWriter;
 import java.util.HashMap;
 
 import org.junit.Test;
@@ -12,10 +11,11 @@ public class Test1 {
     @Test
     public void test1() {
         var tmpl = new HtmlTemplate(Resources.get(this, "test1.html"));
+        System.out.println(tmpl);
         var vars = new HashMap<>();
         vars.put("name", "Abe");
         vars.put("list", new int[] { 1, 10, 100 });
-        tmpl.render(new PrintWriter(System.out, true), vars);
+        tmpl.render(System.out, vars);
         System.out.println();
     }
 }

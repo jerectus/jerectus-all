@@ -14,6 +14,7 @@ import org.apache.commons.collections4.map.LRUMap;
 import org.apache.commons.jexl3.JexlBuilder;
 import org.apache.commons.jexl3.JexlEngine;
 import org.apache.commons.jexl3.JexlException;
+import org.apache.commons.jexl3.internal.Closure;
 
 import jerectus.io.IO;
 import jerectus.text.StringEditor;
@@ -142,8 +143,7 @@ public class TemplateEngine {
                     var stat = Sys.ifEmpty(p.group(4), iter + "$");
                     var list = p.group(6).trim();
                     var options = p.group(7) == null ? "" : p.group(7).substring(1).trim();
-                    sb.append("__ctx.forEach(", list, ", `", list, "`, `", iter, "`, function(", iter, ", ", stat,
-                            "){");
+                    sb.append("tf:forEach(", list, ", `", list, "`, `", iter, "`, function(", iter, ", ", stat, "){");
                     if (p.matches(options, "delim\\s*=\\s*(\"[^\"]+\"|'[^']+'|`([^`]|\\`)+`)")) {
                         sb.append("if(!", stat, ".first){out.print(", p.group(1), ");}");
                     }
@@ -188,5 +188,30 @@ public class TemplateEngine {
         public static Map<String, Object> copy(Map<String, Object> map) {
             return new LinkedHashMap<>(map);
         }
+
+        public static void forEach(Object values, String valuesExpr, String varName, Closure fn) {
+            TemplateContext ctx = Template.currentContext();
+            ctx.eachStat = new EachStat(ctx.eachStat, values, valuesExpr, varName, nameof(valuesExpr));
+            for (var it : ctx.eachStat) {
+                fn.execute(ctx, it.value, it);
+            }
+            ctx.eachStat = ctx.eachStat.parent;
+        }
+
+        public static String nameof(String name) {
+            TemplateContext ctx = Template.currentContext();
+            var p = Pattern.compile("([_a-zA-Z\\$]\\w*)(.*)");
+            var m = p.matcher(name);
+            if (m.matches()) {
+                String rootName = m.group(1);
+                for (var i = ctx.eachStat; i != null; i = i.parent) {
+                    if (i.varName.equals(rootName)) {
+                        return i.baseName + "[" + i.index + "]" + m.group(2);
+                    }
+                }
+            }
+            return name;
+        }
+
     }
 }

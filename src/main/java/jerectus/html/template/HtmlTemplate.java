@@ -1,5 +1,6 @@
 package jerectus.html.template;
 
+import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.file.Path;
 import java.util.Map;
@@ -15,13 +16,12 @@ import org.jsoup.nodes.TextNode;
 
 import jerectus.html.HtmlVisitor;
 import jerectus.text.StringEditor;
-import jerectus.util.template.Template;
-import jerectus.util.template.TemplateContext;
-import jerectus.util.template.TemplateEngine;
-import jerectus.util.template.TemplateEngine.TemplateFunctions;
 import jerectus.util.Sys;
 import jerectus.util.regex.PatternMatcher;
 import jerectus.util.regex.Regex;
+import jerectus.util.template.Template;
+import jerectus.util.template.TemplateEngine;
+import jerectus.util.template.TemplateEngine.TemplateFunctions;
 
 public class HtmlTemplate {
     private static final TemplateEngine engine = new TemplateEngine(Statics.class);
@@ -31,20 +31,6 @@ public class HtmlTemplate {
         try {
             var doc = Jsoup.parse(path.toFile(), "UTF-8", "");
             doc.outputSettings().prettyPrint(false);
-            System.out.println(doc);
-            doc.insertChildren(0, new TextNode("\n"));
-            var html = doc.selectFirst("html");
-            html.parent().prepend("\r\n");
-            var body = html.selectFirst("body");
-            for (int i = body.childNodeSize() - 1; i >= 0; i--) {
-                var t = body.childNode(i);
-                if (t instanceof TextNode) {
-                    t.remove();
-                    html.insertChildren(0, t);
-                    break;
-                }
-            }
-            html.appendText("\n");
             doc.select("script").forEach(elem -> {
                 if (elem.attr("type").equals("text/groovy")) {
                     elem.replaceWith(new Comment("%" + elem.html()));
@@ -89,11 +75,14 @@ public class HtmlTemplate {
             var sb = new StringEditor();
             doc.traverse(new HtmlVisitor() {
                 public void visit(Element elem) {
+                    if (elem.is("html")) {
+                        sb.append("\n");
+                    }
                     if (elem.hasAttr("v:model") || elem.hasAttr("v:attr")) {
                         String model = Sys.ifEmpty(elem.attr("v:model"), "null");
                         elem.removeAttr("v:model");
                         elem.removeAttr("v:attr");
-                        sb.append("<%=tf:tag(__ctx, `", elem.tagName(), "`, {");
+                        sb.append("<%=tf:tag(`", elem.tagName(), "`, {");
                         String[] sep = { "" };
                         elem.attributes().forEach(attr -> {
                             sb.append(sep[0]);
@@ -123,9 +112,15 @@ public class HtmlTemplate {
                         });
                         sb.append(">");
                     }
+                    if (elem.is("html")) {
+                        sb.append("\n");
+                    }
                 }
 
                 public void leave(Element elem) {
+                    if (elem.is("html")) {
+                        sb.append("\n");
+                    }
                     sb.append("</");
                     sb.append(elem.tagName());
                     sb.append(">");
@@ -157,6 +152,10 @@ public class HtmlTemplate {
     }
 
     public void render(Writer out, Object self) {
+        tmpl.writeTo(self, out);
+    }
+
+    public void render(PrintStream out, Object self) {
         tmpl.writeTo(self, out);
     }
 
@@ -214,6 +213,11 @@ public class HtmlTemplate {
         }
     }
 
+    @Override
+    public String toString() {
+        return tmpl.toString();
+    }
+
     public static class Statics extends TemplateFunctions {
         public static String encode(Object v, String ctx) {
             if (v == null)
@@ -241,7 +245,7 @@ public class HtmlTemplate {
             return s;
         }
 
-        public static String tag(TemplateContext ctx, String tagName, Map<String, Object> attributes, Object value) {
+        public static String tag(String tagName, Map<String, Object> attributes, Object value) {
             Object innerText = null;
             switch (tagName) {
             case "input":
@@ -275,7 +279,7 @@ public class HtmlTemplate {
                     if (!Sys.eq(attrVal, true)) {
                         sb.append("=\"");
                         if (attrName.equals("name") && attrVal != null) {
-                            attrVal = ctx.nameof(attrVal.toString());
+                            attrVal = nameof(attrVal.toString());
                         }
                         sb.append(Statics.encode(attrVal, "@"));
                         sb.append("\"");

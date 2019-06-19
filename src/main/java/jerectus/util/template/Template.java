@@ -32,17 +32,20 @@ public class Template {
     }
 
     private void writeTo0(Object context, Object out) {
-        var ctx = context instanceof TemplateContext ? (TemplateContext) context : new TemplateContext(context);
-        currentContext.set(ctx);
-        var tmplObj = new LinkedHashMap<String, Object>();
-        ctx.set("this", tmplObj);
-        ctx.set("out", out);
-        getTemplateObject(ctx);
-        var render = tmplObj.get("__render__");
-        if (render instanceof Closure) {
-            ((Closure) render).execute(ctx);
+        try {
+            var ctx = context instanceof TemplateContext ? (TemplateContext) context : new TemplateContext(context);
+            currentContext.set(ctx);
+            var tmplObj = new LinkedHashMap<String, Object>();
+            ctx.set("this", tmplObj);
+            ctx.set("out", out);
+            getTemplateObject(ctx);
+            var render = tmplObj.get("__render__");
+            if (render instanceof Closure) {
+                ((Closure) render).execute(ctx);
+            }
+        } finally {
+            currentContext.set(null);
         }
-        currentContext.set(null);
     }
 
     public void writeTo(Object context, PrintStream out) {
@@ -59,6 +62,11 @@ public class Template {
         var out = new StringWriter();
         writeTo(context, out);
         return out.toString();
+    }
+
+    @Override
+    public String toString() {
+        return script.toString();
     }
 
     public static TemplateContext currentContext() {
