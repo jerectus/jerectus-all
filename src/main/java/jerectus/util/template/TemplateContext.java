@@ -15,7 +15,6 @@ public class TemplateContext implements JexlContext {
     public TemplateContext(Object vars) {
         ctx = vars instanceof JexlContext ? (JexlContext) vars
                 : new MapContext(vars instanceof Map ? (Map<String, Object>) vars : Sys.populate(vars));
-        set("__ctx", this);
     }
 
     @Override

@@ -29,7 +29,7 @@ public class TemplateTest {
     public void test3() {
         var engine = new TemplateEngine();
         var tmpl = engine.createTemplate(
-                "<%var l=[{'x':1},{'x':2}]; %><%%for a : l ; delim=`,`%>\n<%=a%> : <%=__ctx.nameof(`a.x`)%><%%end-for%>");
+                "<%var l=[{'x':1},{'x':2}]; %><%%for a : l ; delim=`,`%>\n<%=a%> : <%=tf:nameof(`a.x`)%><%%end-for%>");
         var vars = new HashMap<>();
         vars.put("name", "Abe");
         // System.out.println(tmpl.execute(vars));
