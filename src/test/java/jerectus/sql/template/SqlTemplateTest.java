@@ -16,5 +16,6 @@ public class SqlTemplateTest {
         vars.put("name", "be");
         vars.put("orderBy", 2);
         System.out.println(tpl.process(vars));
+        System.out.println(tpl);
     }
 }

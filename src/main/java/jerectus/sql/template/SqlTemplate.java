@@ -1,6 +1,9 @@
 package jerectus.sql.template;
 
+import java.lang.reflect.Array;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
@@ -11,6 +14,7 @@ import jerectus.sql.parser.Cursor;
 import jerectus.sql.parser.SqlToken;
 import jerectus.sql.parser.SqlTokenizer;
 import jerectus.util.template.Template;
+import jerectus.util.template.TemplateContext;
 import jerectus.util.template.TemplateEngine;
 import jerectus.util.template.TemplateEngine.TemplateFunctions;
 import jerectus.util.Sys;
@@ -53,7 +57,7 @@ public class SqlTemplate {
                     cursor.remove(0);
                     encloseLine(cursor, String.format("<%%if(%s){%%>", m.group(1)), "<%}else{%>\u007f<%}%>");
                 } else if (m.matches(":(%)?(\\w+)(%)?(\\?)?")) {
-                    t.value = String.format("<%%=__ctx.bind(%s, %s, %s)%%>", m.group(2), m.group(1) != null,
+                    t.value = String.format("<%%=tf:bind(%s, %s, %s)%%>", m.group(2), m.group(1) != null,
                             m.group(3) != null);
                     cursor.remove(1);
                     if (m.group(4) != null) {
@@ -88,7 +92,7 @@ public class SqlTemplate {
     }
 
     public Result process(Object vars) {
-        var ctx = new SqlTemplateContext(vars);
+        var ctx = new TemplateContext(vars);
         String sql = getTemplate().execute(ctx);
         log.info("sql:\n", sql.replace('\u007f', '~'));
         for (;;) {
@@ -122,7 +126,12 @@ public class SqlTemplate {
         }
         sql = sql.replaceAll("\\b(" + adjWords + ")\\b[\\s\u007f]*$", "");
         sql = sql.replaceAll(" *\u007f *", "");
-        return new Result(sql, ctx.getParameters());
+        return new Result(sql, Sys.cast(ctx.get("__params")));
+    }
+
+    @Override
+    public String toString() {
+        return sqlTemplate.toString();
     }
 
     private static SqlToken newToken(String type, String value, String frontSpace) {
@@ -199,6 +208,45 @@ public class SqlTemplate {
 
         public static boolean isNotEmpty(Object o) {
             return o != null && !"".equals(o) && !" ".equals(o) && Sys.size(o) != 0;
+        }
+
+        public static String bind(Object param, boolean head, boolean tail) {
+            var ctx = Template.currentContext();
+            @SuppressWarnings("unchecked")
+            var params = (List<Object>) ctx.get("__params");
+            if (params == null) {
+                params = new ArrayList<>();
+                ctx.set("__params", params);
+            }
+            if (param != null) {
+                if (param instanceof Collection) {
+                    Collection<Object> c = Sys.cast(param);
+                    if (c.isEmpty()) {
+                        params.add(null);
+                        return "?";
+                    }
+                    for (var v : c) {
+                        params.add(v);
+                    }
+                    return Sys.repeat("?", c.size(), ",");
+                }
+                if (param.getClass().isArray()) {
+                    int n = Array.getLength(param);
+                    if (n == 0) {
+                        params.add(null);
+                        return "?";
+                    }
+                    for (int i = 0; i < n; i++) {
+                        params.add(Array.get(param, i));
+                    }
+                    return Sys.repeat("?", n, ",");
+                }
+                if (head || tail) {
+                    param = (head ? "%" : "") + SqlTemplate.Functions.escape(param.toString()) + (tail ? "%" : "");
+                }
+            }
+            params.add(param);
+            return "?";
         }
     }
 }
