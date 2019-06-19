@@ -5,6 +5,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 import org.apache.commons.jexl3.JexlContext;
@@ -88,5 +89,35 @@ public class Template {
                 return m.group();
             }
         }) + "`";
+    }
+
+    public static class Functions {
+        public static Map<String, Object> copy(Map<String, Object> map) {
+            return new LinkedHashMap<>(map);
+        }
+
+        public static void forEach(Object values, String valuesExpr, String varName, Closure fn) {
+            TemplateContext ctx = currentContext();
+            ctx.eachStat = new EachStat(ctx.eachStat, values, valuesExpr, varName, nameof(valuesExpr));
+            for (var it : ctx.eachStat) {
+                fn.execute(ctx, it.value, it);
+            }
+            ctx.eachStat = ctx.eachStat.parent;
+        }
+
+        public static String nameof(String name) {
+            TemplateContext ctx = currentContext();
+            var p = Pattern.compile("([_a-zA-Z\\$]\\w*)(.*)");
+            var m = p.matcher(name);
+            if (m.matches()) {
+                String rootName = m.group(1);
+                for (var i = ctx.eachStat; i != null; i = i.parent) {
+                    if (i.varName.equals(rootName)) {
+                        return i.baseName + "[" + i.index + "]" + m.group(2);
+                    }
+                }
+            }
+            return name;
+        }
     }
 }

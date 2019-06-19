@@ -4,8 +4,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Pattern;
@@ -14,7 +12,6 @@ import org.apache.commons.collections4.map.LRUMap;
 import org.apache.commons.jexl3.JexlBuilder;
 import org.apache.commons.jexl3.JexlEngine;
 import org.apache.commons.jexl3.JexlException;
-import org.apache.commons.jexl3.internal.Closure;
 
 import jerectus.io.IO;
 import jerectus.text.StringEditor;
@@ -30,13 +27,13 @@ public class TemplateEngine {
 
     public TemplateEngine(Consumer<JexlBuilder> fn) {
         var ns = new HashMap<String, Object>();
-        ns.put("tf", TemplateFunctions.class);
+        ns.put("tf", Template.Functions.class);
         var jb = new JexlBuilder().namespaces(ns);
         fn.accept(jb);
         engine = jb.create();
     }
 
-    public TemplateEngine(Class<? extends TemplateFunctions> functionClass) {
+    public TemplateEngine(Class<? extends Template.Functions> functionClass) {
         this(b -> b.namespaces().put("tf", functionClass));
     }
 
@@ -182,36 +179,5 @@ public class TemplateEngine {
             System.out.println(Sys.repeat(" ", c - 1, "") + "^ " + e.getMessage().replaceAll("^.*?@\\d+:\\d+ ", ""));
             throw e;
         }
-    }
-
-    public static class TemplateFunctions {
-        public static Map<String, Object> copy(Map<String, Object> map) {
-            return new LinkedHashMap<>(map);
-        }
-
-        public static void forEach(Object values, String valuesExpr, String varName, Closure fn) {
-            TemplateContext ctx = Template.currentContext();
-            ctx.eachStat = new EachStat(ctx.eachStat, values, valuesExpr, varName, nameof(valuesExpr));
-            for (var it : ctx.eachStat) {
-                fn.execute(ctx, it.value, it);
-            }
-            ctx.eachStat = ctx.eachStat.parent;
-        }
-
-        public static String nameof(String name) {
-            TemplateContext ctx = Template.currentContext();
-            var p = Pattern.compile("([_a-zA-Z\\$]\\w*)(.*)");
-            var m = p.matcher(name);
-            if (m.matches()) {
-                String rootName = m.group(1);
-                for (var i = ctx.eachStat; i != null; i = i.parent) {
-                    if (i.varName.equals(rootName)) {
-                        return i.baseName + "[" + i.index + "]" + m.group(2);
-                    }
-                }
-            }
-            return name;
-        }
-
     }
 }

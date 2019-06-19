@@ -21,10 +21,9 @@ import jerectus.util.regex.PatternMatcher;
 import jerectus.util.regex.Regex;
 import jerectus.util.template.Template;
 import jerectus.util.template.TemplateEngine;
-import jerectus.util.template.TemplateEngine.TemplateFunctions;
 
 public class HtmlTemplate {
-    private static final TemplateEngine engine = new TemplateEngine(Statics.class);
+    private static final TemplateEngine engine = new TemplateEngine(Functions.class);
     private Template tmpl;
 
     public HtmlTemplate(Path path) {
@@ -32,7 +31,7 @@ public class HtmlTemplate {
             var doc = Jsoup.parse(path.toFile(), "UTF-8", "");
             doc.outputSettings().prettyPrint(false);
             doc.select("script").forEach(elem -> {
-                if (elem.attr("type").equals("text/groovy")) {
+                if (elem.attr("type").equals("text/jexl")) {
                     elem.replaceWith(new Comment("%" + elem.html()));
                 }
             });
@@ -161,9 +160,9 @@ public class HtmlTemplate {
 
     private String expand(String s, String ctx) {
         final Pattern ptn = Pattern.compile("(?s)\\\\|\\$(\\{(.*?)\\})?");
-        Function<String, String> fn = ctx.equals("@") ? t -> Statics.decode(t) : t -> t;
+        Function<String, String> fn = ctx.equals("@") ? t -> Functions.decode(t) : t -> t;
         if (ctx.equals("@")) {
-            s = Statics.encode(s, "@");
+            s = Functions.encode(s, "@");
         }
         return Regex.replace(s, ptn, m -> {
             switch (m.group()) {
@@ -218,7 +217,7 @@ public class HtmlTemplate {
         return tmpl.toString();
     }
 
-    public static class Statics extends TemplateFunctions {
+    public static class Functions extends Template.Functions {
         public static String encode(Object v, String ctx) {
             if (v == null)
                 return "";
@@ -281,7 +280,7 @@ public class HtmlTemplate {
                         if (attrName.equals("name") && attrVal != null) {
                             attrVal = nameof(attrVal.toString());
                         }
-                        sb.append(Statics.encode(attrVal, "@"));
+                        sb.append(Functions.encode(attrVal, "@"));
                         sb.append("\"");
                     }
                 }

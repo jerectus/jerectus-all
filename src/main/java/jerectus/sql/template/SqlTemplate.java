@@ -16,7 +16,6 @@ import jerectus.sql.parser.SqlTokenizer;
 import jerectus.util.template.Template;
 import jerectus.util.template.TemplateContext;
 import jerectus.util.template.TemplateEngine;
-import jerectus.util.template.TemplateEngine.TemplateFunctions;
 import jerectus.util.Sys;
 import jerectus.util.logging.Logger;
 
@@ -169,7 +168,7 @@ public class SqlTemplate {
         }
     }
 
-    public static class Functions extends TemplateFunctions {
+    public static class Functions extends Template.Functions {
         public static String escape(String s, String escapeChar) {
             if (escapeChar == null) {
                 escapeChar = "~";
