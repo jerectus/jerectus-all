@@ -1,16 +1,18 @@
-package jerectus.text;
+package jerectus.util.template;
 
 import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.LinkedHashMap;
+import java.util.regex.Pattern;
 
 import org.apache.commons.jexl3.JexlContext;
 import org.apache.commons.jexl3.JexlScript;
 import org.apache.commons.jexl3.internal.Closure;
 
 import jerectus.util.Try;
+import jerectus.util.regex.Regex;
 
 public class Template {
     private static ThreadLocal<TemplateContext> currentContext = new ThreadLocal<>();
@@ -61,5 +63,22 @@ public class Template {
 
     public static TemplateContext currentContext() {
         return currentContext.get();
+    }
+
+    private static final Pattern ESCAPE_PTN = Pattern.compile("[\\\\`\\$]");
+
+    public static String quote(String s) {
+        return "`" + Regex.replace(s, ESCAPE_PTN, m -> {
+            switch (m.group().charAt(0)) {
+            case '\\':
+                return "\\\\";
+            case '`':
+                return "\\`";
+            case '$':
+                return "\\$";
+            default:
+                return m.group();
+            }
+        }) + "`";
     }
 }

@@ -1,4 +1,4 @@
-package jerectus.html.template;
+package jerectus.html;
 
 import org.jsoup.nodes.Comment;
 import org.jsoup.nodes.Document;
@@ -7,7 +7,7 @@ import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
 import org.jsoup.select.NodeVisitor;
 
-class HtmlVisitor implements NodeVisitor {
+public class HtmlVisitor implements NodeVisitor {
     @Override
     public void head(Node node, int depth) {
         if (node instanceof Document) {

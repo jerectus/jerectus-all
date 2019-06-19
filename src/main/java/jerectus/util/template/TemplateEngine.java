@@ -1,4 +1,4 @@
-package jerectus.text;
+package jerectus.util.template;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -13,12 +13,14 @@ import java.util.regex.Pattern;
 import org.apache.commons.collections4.map.LRUMap;
 import org.apache.commons.jexl3.JexlBuilder;
 import org.apache.commons.jexl3.JexlEngine;
+import org.apache.commons.jexl3.JexlException;
 
 import jerectus.io.IO;
-import jerectus.util.regex.PatternMatcher;
-import jerectus.util.regex.Regex;
+import jerectus.text.StringEditor;
 import jerectus.util.Sys;
 import jerectus.util.Try;
+import jerectus.util.regex.PatternMatcher;
+import jerectus.util.regex.Regex;
 
 public class TemplateEngine {
     private JexlEngine engine;
@@ -63,23 +65,6 @@ public class TemplateEngine {
         return createTemplate(path, null);
     }
 
-    static final Pattern ESCAPE_PTN = Pattern.compile("[\\\\`\\$]");
-
-    public static String escape(String s) {
-        return "`" + Regex.replace(s, ESCAPE_PTN, m -> {
-            switch (m.group().charAt(0)) {
-            case '\\':
-                return "\\\\";
-            case '`':
-                return "\\`";
-            case '$':
-                return "\\$";
-            default:
-                return m.group();
-            }
-        }) + "`";
-    }
-
     static final Pattern TEMPLATE_PTN = Pattern.compile("<(%[=%]?)(.*?)%>|\\$\\{(.*?)\\}", Pattern.DOTALL);
 
     Template compile(Path path, String s) {
@@ -119,7 +104,7 @@ public class TemplateEngine {
         var fn = new Object() {
             void printRaw(String s) {
                 if (!Sys.isEmpty(s)) {
-                    sb.append("out.print(", escape(s), ");");
+                    sb.append("out.print(", Template.quote(s), ");");
                 }
             }
 
@@ -166,6 +151,8 @@ public class TemplateEngine {
                     sb.append("});");
                 } else if (p.matches(s, "super\\s*")) {
                     sb.append("super();");
+                } else {
+                    sb.append("<%%", s, "%>");
                 }
             }
         };
@@ -183,7 +170,18 @@ public class TemplateEngine {
             pos = m.end();
         }
         fn.text(s.substring(pos));
-        return new Template(parent, engine.createScript(sb.toString()));
+        s = sb.toString();
+        try {
+            return new Template(parent, engine.createScript(s));
+        } catch (JexlException.Parsing e) {
+            var info = e.getInfo();
+            var l = info.getLine();
+            var c = info.getColumn();
+            var lines = s.split("(?s)\r\n|\n");
+            System.out.println(lines[l - 1]);
+            System.out.println(Sys.repeat(" ", c - 1, "") + "^ " + e.getMessage().replaceAll("^.*?@\\d+:\\d+ ", ""));
+            throw e;
+        }
     }
 
     public static class TemplateFunctions {

@@ -13,11 +13,12 @@ import org.jsoup.nodes.Element;
 import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
 
+import jerectus.html.HtmlVisitor;
 import jerectus.text.StringEditor;
-import jerectus.text.Template;
-import jerectus.text.TemplateContext;
-import jerectus.text.TemplateEngine;
-import jerectus.text.TemplateEngine.TemplateFunctions;
+import jerectus.util.template.Template;
+import jerectus.util.template.TemplateContext;
+import jerectus.util.template.TemplateEngine;
+import jerectus.util.template.TemplateEngine.TemplateFunctions;
 import jerectus.util.Sys;
 import jerectus.util.regex.PatternMatcher;
 import jerectus.util.regex.Regex;
@@ -104,7 +105,7 @@ public class HtmlTemplate {
                             } else {
                                 sb.append("`", attr.getKey(), "`");
                                 sb.append(":");
-                                sb.append(attr.getValue() == null ? "true" : TemplateEngine.escape(attr.getValue()));
+                                sb.append(attr.getValue() == null ? "true" : Template.quote(attr.getValue()));
                             }
                         });
                         sb.append("}, ", model, ")%>");

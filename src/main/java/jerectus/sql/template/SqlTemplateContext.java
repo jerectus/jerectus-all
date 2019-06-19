@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
-import jerectus.text.TemplateContext;
+import jerectus.util.template.TemplateContext;
 import jerectus.util.Sys;
 
 public class SqlTemplateContext extends TemplateContext {

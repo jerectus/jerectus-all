@@ -1,4 +1,4 @@
-package jerectus.text;
+package jerectus.util.template;
 
 import java.util.Iterator;
 

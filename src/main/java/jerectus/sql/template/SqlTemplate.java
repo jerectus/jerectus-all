@@ -10,9 +10,9 @@ import java.util.stream.Collectors;
 import jerectus.sql.parser.Cursor;
 import jerectus.sql.parser.SqlToken;
 import jerectus.sql.parser.SqlTokenizer;
-import jerectus.text.Template;
-import jerectus.text.TemplateEngine;
-import jerectus.text.TemplateEngine.TemplateFunctions;
+import jerectus.util.template.Template;
+import jerectus.util.template.TemplateEngine;
+import jerectus.util.template.TemplateEngine.TemplateFunctions;
 import jerectus.util.Sys;
 import jerectus.util.logging.Logger;
 
