@@ -21,4 +21,38 @@ public class Regex {
     public static String replace(String text, String ptn, Function<Matcher, String> fn) {
         return replace(text, Pattern.compile(ptn), fn);
     }
+
+    public static Test test(String text) {
+        return new Test(text);
+    }
+
+    public static class Test {
+        private String s;
+        private Matcher m;
+
+        public Test(String s) {
+            this.s = s;
+        }
+
+        public boolean matches(Pattern pattern) {
+            m = pattern.matcher(s);
+            return m.matches();
+        }
+
+        public boolean matches(String pattern) {
+            return matches(Pattern.compile(pattern));
+        }
+
+        public Matcher matcher() {
+            return m;
+        }
+
+        public String group() {
+            return m.group();
+        }
+
+        public String group(int index) {
+            return m.group(index);
+        }
+    }
 }

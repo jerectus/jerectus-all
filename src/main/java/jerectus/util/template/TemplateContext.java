@@ -1,6 +1,8 @@
 package jerectus.util.template;
 
+import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 
 import org.apache.commons.jexl3.JexlContext;
 import org.apache.commons.jexl3.MapContext;
@@ -9,6 +11,7 @@ import jerectus.util.Sys;
 
 public class TemplateContext implements JexlContext {
     JexlContext ctx;
+    Map<String, Object> attr = new HashMap<>();
     EachStat eachStat;
 
     @SuppressWarnings("unchecked")
@@ -19,16 +22,31 @@ public class TemplateContext implements JexlContext {
 
     @Override
     public Object get(String name) {
-        return ctx.get(name);
+        return name.startsWith("__") ? attr.get(name) : ctx.get(name);
     }
 
     @Override
     public void set(String name, Object value) {
-        ctx.set(name, value);
+        if (name.startsWith("__")) {
+            attr.put(name, value);
+        } else {
+            ctx.set(name, value);
+        }
     }
 
     @Override
     public boolean has(String name) {
-        return ctx.has(name);
+        return name.startsWith("__") ? attr.containsKey(name) : ctx.has(name);
+    }
+
+    public Object computeIfAbsent(String name, Function<String, Object> fn) {
+        if (name.startsWith("__")) {
+            return attr.computeIfAbsent(name, fn);
+        } else {
+            if (!ctx.has(name)) {
+                ctx.set(name, fn.apply(name));
+            }
+            return ctx.get(name);
+        }
     }
 }

@@ -18,6 +18,7 @@ import jerectus.util.template.TemplateContext;
 import jerectus.util.template.TemplateEngine;
 import jerectus.util.Sys;
 import jerectus.util.logging.Logger;
+import jerectus.util.regex.Regex;
 
 public class SqlTemplate {
     private static final Logger log = Logger.getLogger(SqlTemplate.class);
@@ -45,7 +46,7 @@ public class SqlTemplate {
         while (cursor.moveNext()) {
             var t = cursor.get();
             if (t.is("comment1?")) {
-                var m = new Match(t.getContent().trim());
+                var m = Regex.test(t.getContent().trim());
                 if (m.matches("#(if|for|else(-if)?|end-(if|for))\\b.*")) {
                     t.value = (m.group(1).matches("if|for") ? "\u007f" : "") + "<%%" + m.group().substring(1) + "%>";
                     t.frontSpace = "";
@@ -94,6 +95,11 @@ public class SqlTemplate {
         var ctx = new TemplateContext(vars);
         String sql = getTemplate().execute(ctx);
         log.info("sql:\n", sql.replace('\u007f', '~'));
+        sql = adjust(sql);
+        return new Result(sql, Sys.cast(ctx.get("__params")));
+    }
+
+    private static String adjust(String sql) {
         for (;;) {
             sql = sql.replaceAll("\u007f(,|\\s+|\u007f|and\\b|or\\b)*\u007f", "\u007f");
             sql = sql.replaceAll(" *,\\s*\u007f\\R?", "");
@@ -125,7 +131,7 @@ public class SqlTemplate {
         }
         sql = sql.replaceAll("\\b(" + adjWords + ")\\b[\\s\u007f]*$", "");
         sql = sql.replaceAll(" *\u007f *", "");
-        return new Result(sql, Sys.cast(ctx.get("__params")));
+        return sql;
     }
 
     @Override
@@ -212,11 +218,7 @@ public class SqlTemplate {
         public static String bind(Object param, boolean head, boolean tail) {
             var ctx = Template.currentContext();
             @SuppressWarnings("unchecked")
-            var params = (List<Object>) ctx.get("__params");
-            if (params == null) {
-                params = new ArrayList<>();
-                ctx.set("__params", params);
-            }
+            var params = (List<Object>) ctx.computeIfAbsent("__params", key -> new ArrayList<>());
             if (param != null) {
                 if (param instanceof Collection) {
                     Collection<Object> c = Sys.cast(param);
@@ -241,41 +243,11 @@ public class SqlTemplate {
                     return Sys.repeat("?", n, ",");
                 }
                 if (head || tail) {
-                    param = (head ? "%" : "") + SqlTemplate.Functions.escape(param.toString()) + (tail ? "%" : "");
+                    param = (head ? "%" : "") + escape(param.toString()) + (tail ? "%" : "");
                 }
             }
             params.add(param);
             return "?";
         }
-    }
-}
-
-class Match {
-    private String s;
-    private Matcher m;
-
-    public Match(String s) {
-        this.s = s;
-    }
-
-    public boolean matches(Pattern pattern) {
-        m = pattern.matcher(s);
-        return m.matches();
-    }
-
-    public boolean matches(String pattern) {
-        return matches(Pattern.compile(pattern));
-    }
-
-    public Matcher matcher() {
-        return m;
-    }
-
-    public String group() {
-        return m.group();
-    }
-
-    public String group(int index) {
-        return m.group(index);
     }
 }
