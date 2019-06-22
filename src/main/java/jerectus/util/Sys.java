@@ -1,5 +1,7 @@
 package jerectus.util;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.util.Arrays;
@@ -88,7 +90,8 @@ public class Sys {
     }
 
     public static RuntimeException asRuntimeException(Exception e) {
-        throw e instanceof RuntimeException ? (RuntimeException) e : new RuntimeException(e);
+        throw e instanceof RuntimeException ? (RuntimeException) e
+                : e instanceof IOException ? new UncheckedIOException((IOException) e) : new RuntimeException(e);
     }
 
     public static <T> T newInstance(Constructor<T> c) {

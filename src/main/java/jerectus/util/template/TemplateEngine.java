@@ -1,5 +1,7 @@
 package jerectus.util.template;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -17,19 +19,22 @@ import jerectus.io.IO;
 import jerectus.text.StringEditor;
 import jerectus.util.Sys;
 import jerectus.util.Try;
+import jerectus.util.logging.Logger;
 import jerectus.util.regex.PatternMatcher;
 import jerectus.util.regex.Regex;
 
 public class TemplateEngine {
+    private static final Logger log = Logger.getLogger(TemplateEngine.class);
     private JexlEngine engine;
-    private Function<String, String> preprocessor = s -> s;
     private LRUMap<String, Template> templateCache = new LRUMap<>();
 
     public TemplateEngine(Consumer<JexlBuilder> fn) {
         var ns = new HashMap<String, Object>();
         ns.put("tf", Template.Functions.class);
         var jb = new JexlBuilder().namespaces(ns);
-        fn.accept(jb);
+        if (fn != null) {
+            fn.accept(jb);
+        }
         engine = jb.create();
     }
 
@@ -38,17 +43,19 @@ public class TemplateEngine {
     }
 
     public TemplateEngine() {
-        this(b -> {
-        });
-    }
-
-    public TemplateEngine preprocessor(Function<String, String> preprocessor) {
-        this.preprocessor = preprocessor;
-        return this;
+        this((Consumer<JexlBuilder>) null);
     }
 
     public Template getTemplate(Path path) {
         return templateCache.computeIfAbsent(path.toString(), key -> createTemplate(path));
+    }
+
+    public Template getTemplate(Path path, Function<Path, String> preprocessor) {
+        return templateCache.computeIfAbsent(path.toString(), key -> createTemplate(path, preprocessor.apply(path)));
+    }
+
+    public Template getTemplate(Path path, String source) {
+        return templateCache.computeIfAbsent(path.toString(), key -> createTemplate(path, source));
     }
 
     public Template createTemplate(Path path, String source) {
@@ -69,7 +76,7 @@ public class TemplateEngine {
         if (s == null) {
             s = Try.get(() -> Files.readString(path, StandardCharsets.UTF_8));
         }
-        s = preprocessor.apply(s);
+        log.debug("path=", path, "\nsource=\n", s);
         var blocks = new StringEditor();
         var pm = new PatternMatcher();
         Template parent = path != null && pm.matches(s, "(?s)<%%extends\\s+(\\w+).*?%>.*")
@@ -134,18 +141,19 @@ public class TemplateEngine {
                 } else if (p.matches(s, "else\\b(.*)")) {
                     sb.append("}else{");
                 } else if (p.matches(s, "end-if\\b(.*)")) {
-                    sb.append("}");
+                    sb.append("}/*end-if*/");
                 } else if (p.matches(s, "for\\s+((\\w+)\\s*(,\\s*(\\w+))?\\s*(:|\\bin\\b))?\\s*([^;]+)(;.*)?")) {
                     var iter = Sys.ifEmpty(p.group(2), "it");
                     var stat = Sys.ifEmpty(p.group(4), iter + "$");
                     var list = p.group(6).trim();
                     var options = p.group(7) == null ? "" : p.group(7).substring(1).trim();
-                    sb.append("tf:forEach(", list, ", `", list, "`, `", iter, "`, function(", iter, ", ", stat, "){");
+                    sb.append("tf:forEach(", list, ", ", quote(list), ", ", quote(iter), ", function(", iter, ", ",
+                            stat, "){");
                     if (p.matches(options, "delim\\s*=\\s*(\"[^\"]+\"|'[^']+'|`([^`]|\\`)+`)")) {
                         sb.append("if(!", stat, ".first){out.print(", p.group(1), ");}");
                     }
                 } else if (p.matches(s, "end-for\\b(.*)")) {
-                    sb.append("});");
+                    sb.append("})/*end-for*/;");
                 } else if (p.matches(s, "super\\s*")) {
                     sb.append("super();");
                 } else {
@@ -169,15 +177,38 @@ public class TemplateEngine {
         fn.text(s.substring(pos));
         s = sb.toString();
         try {
-            return new Template(parent, engine.createScript(s));
-        } catch (JexlException.Parsing e) {
-            var info = e.getInfo();
-            var l = info.getLine();
-            var c = info.getColumn();
-            var lines = s.split("(?s)\r\n|\n");
-            System.out.println(lines[l - 1]);
-            System.out.println(Sys.repeat(" ", c - 1, "") + "^ " + e.getMessage().replaceAll("^.*?@\\d+:\\d+ ", ""));
+            log.debug("path=", path, "\nscript=\n", s);
+            return new Template(parent, engine.createScript(s), path);
+        } catch (JexlException e) {
+            log(path, sb, e);
             throw e;
         }
+    }
+
+    public static void log(Path path, CharSequence src, JexlException e) {
+        var sw = new StringWriter();
+        var out = new PrintWriter(sw);
+        var info = e.getInfo();
+        var l = info.getLine();
+        var c = info.getColumn();
+        var lines = src.toString().split("(?s)\r\n|\n");
+        out.println(path + " (" + l + ":" + c + ")");
+        int i = Math.max(l - 5, 1);
+        int n = Math.min(l + 5, lines.length);
+        for (; i <= n; i++) {
+            out.printf("%5d:", i);
+            out.println(lines[i - 1]);
+            if (i == l) {
+                out.print("=====>");
+                out.print(Sys.repeat(" ", c - 1, "") + "^ ");
+                out.print(e.getMessage().replaceAll("^.*?@\\d+:\\d+ ", ""));
+                out.println();
+            }
+        }
+        log.error(sw.toString(), e);
+    }
+
+    private static String quote(String s) {
+        return Template.quote(s);
     }
 }

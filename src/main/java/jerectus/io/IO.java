@@ -1,11 +1,13 @@
 package jerectus.io;
 
+import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import jerectus.util.Try;
+import jerectus.util.function.TryConsumer;
 
 public class IO {
     public static String load(Path path) {
@@ -25,6 +27,15 @@ public class IO {
 
     public static void save(String path, CharSequence content) {
         save(Paths.get(path), content);
+    }
+
+    public static void save(Path path, TryConsumer<PrintWriter> fn) {
+        Try.run(() -> {
+            Files.createDirectories(path.getParent());
+            try (var out = new PrintWriter(Files.newBufferedWriter(path, StandardCharsets.UTF_8))) {
+                fn.accept(out);
+            }
+        });
     }
 
     public static String getExtention(Path p) {

@@ -27,6 +27,10 @@ public class HtmlTemplate {
     private Template tmpl;
 
     public HtmlTemplate(Path path) {
+        tmpl = engine.getTemplate(path, HtmlTemplate::preprocessor);
+    }
+
+    public static String preprocessor(Path path) {
         try {
             var doc = Jsoup.parse(path.toFile(), "UTF-8", "");
             doc.outputSettings().prettyPrint(false);
@@ -87,12 +91,9 @@ public class HtmlTemplate {
                             sb.append(sep[0]);
                             sep[0] = ", ";
                             if (attr.getKey().startsWith("v:attr:")) {
-                                sb.append("`", attr.getKey().substring(7), "`");
-                                sb.append(":");
-                                sb.append(attr.getValue());
+                                sb.append("`", attr.getKey().substring(7), "`:", attr.getValue());
                             } else {
-                                sb.append("`", attr.getKey(), "`");
-                                sb.append(":");
+                                sb.append("`", attr.getKey(), "`:");
                                 sb.append(attr.getValue() == null ? "true" : Template.quote(attr.getValue()));
                             }
                         });
@@ -142,23 +143,21 @@ public class HtmlTemplate {
                     sb.append(node.outerHtml());
                 }
             });
-            var src = sb.toString();
-            // System.out.println(src);
-            tmpl = engine.createTemplate(src);
+            return sb.toString();
         } catch (Exception e) {
             throw Sys.asRuntimeException(e);
         }
     }
 
     public void render(Writer out, Object self) {
-        tmpl.writeTo(self, out);
+        tmpl.execute(self, out);
     }
 
     public void render(PrintStream out, Object self) {
-        tmpl.writeTo(self, out);
+        tmpl.execute(self, out);
     }
 
-    private String expand(String s, String ctx) {
+    private static String expand(String s, String ctx) {
         final Pattern ptn = Pattern.compile("(?s)\\\\|\\$(\\{(.*?)\\})?");
         Function<String, String> fn = ctx.equals("@") ? t -> Functions.decode(t) : t -> t;
         if (ctx.equals("@")) {
@@ -177,7 +176,7 @@ public class HtmlTemplate {
         });
     }
 
-    private void applyBind(Element elem, String bind) {
+    private static void applyBind(Element elem, String bind) {
         // Pattern ptn = Pattern.compile("\"[]\"");
         Stream.of(bind.split(";")).forEach(it -> {
             PatternMatcher m = new PatternMatcher();
@@ -197,7 +196,7 @@ public class HtmlTemplate {
         });
     }
 
-    private String makeScript(String code) {
+    private static String makeScript(String code) {
         var m = new PatternMatcher();
         if (m.matches(code, "==(.*)")) {
             return "<%=" + m.group(1) + "%>";
@@ -256,7 +255,7 @@ public class HtmlTemplate {
                     break;
                 case "checkbox":
                 case "radio":
-                    attributes.put("checked", matched(attributes.get("value"), value));
+                    attributes.put("checked", matches(attributes.get("value"), value));
                     break;
                 }
             case "select":
@@ -264,7 +263,7 @@ public class HtmlTemplate {
             case "option":
                 innerText = attributes.get("innerText");
                 attributes.remove("innerText");
-                attributes.put("selected", matched(attributes.getOrDefault("value", innerText), value));
+                attributes.put("selected", matches(attributes.getOrDefault("value", innerText), value));
                 break;
             case "textarea":
                 innerText = value;
@@ -292,7 +291,7 @@ public class HtmlTemplate {
             return sb.toString();
         }
 
-        private static boolean matched(Object a, Object b) {
+        private static boolean matches(Object a, Object b) {
             for (Object v : Sys.each(b)) {
                 if (Sys.eq(Sys.toString(a, ""), Sys.toString(v, ""))) {
                     return true;

@@ -4,11 +4,13 @@ import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.Writer;
+import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
 import org.apache.commons.jexl3.JexlContext;
+import org.apache.commons.jexl3.JexlException;
 import org.apache.commons.jexl3.JexlScript;
 import org.apache.commons.jexl3.internal.Closure;
 
@@ -19,10 +21,16 @@ public class Template {
     private static ThreadLocal<TemplateContext> currentContext = new ThreadLocal<>();
     private Template parent;
     private JexlScript script;
+    private Path path;
 
-    public Template(Template parent, JexlScript script) {
+    public Template(Template parent, JexlScript script, Path path) {
         this.parent = parent;
         this.script = script;
+        this.path = path;
+    }
+
+    public Path getPath() {
+        return path;
     }
 
     public Object getTemplateObject(JexlContext ctx) {
@@ -32,7 +40,7 @@ public class Template {
         return script.execute(ctx);
     }
 
-    private void writeTo0(Object context, Object out) {
+    private void writeTo(Object context, Object out) {
         try {
             var ctx = context instanceof TemplateContext ? (TemplateContext) context : new TemplateContext(context);
             currentContext.set(ctx);
@@ -44,24 +52,27 @@ public class Template {
             if (render instanceof Closure) {
                 ((Closure) render).execute(ctx);
             }
+        } catch (JexlException e) {
+            TemplateEngine.log(path, script.toString(), e);
+            throw e;
         } finally {
             currentContext.set(null);
         }
     }
 
-    public void writeTo(Object context, PrintStream out) {
-        writeTo0(context, out);
+    public void execute(Object context, PrintStream out) {
+        writeTo(context, out);
         out.println();
     }
 
-    public void writeTo(Object context, Writer out) {
-        writeTo0(context, out instanceof PrintWriter ? out : new PrintWriter(out));
+    public void execute(Object context, Writer out) {
+        writeTo(context, out instanceof PrintWriter ? out : new PrintWriter(out));
         Try.run(() -> out.flush());
     }
 
     public String execute(Object context) {
         var out = new StringWriter();
-        writeTo(context, out);
+        execute(context, out);
         return out.toString();
     }
 
@@ -99,10 +110,13 @@ public class Template {
         public static void forEach(Object values, String valuesExpr, String varName, Closure fn) {
             TemplateContext ctx = currentContext();
             ctx.eachStat = new EachStat(ctx.eachStat, values, valuesExpr, varName, nameof(valuesExpr));
-            for (var it : ctx.eachStat) {
-                fn.execute(ctx, it.value, it);
+            try {
+                for (var it : ctx.eachStat) {
+                    fn.execute(ctx, it.value, it);
+                }
+            } finally {
+                ctx.eachStat = ctx.eachStat.parent;
             }
-            ctx.eachStat = ctx.eachStat.parent;
         }
 
         public static String nameof(String name) {

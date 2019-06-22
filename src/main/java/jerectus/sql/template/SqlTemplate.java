@@ -10,6 +10,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import jerectus.io.IO;
 import jerectus.sql.parser.Cursor;
 import jerectus.sql.parser.SqlToken;
 import jerectus.sql.parser.SqlTokenizer;
@@ -25,20 +26,20 @@ public class SqlTemplate {
     private static final TemplateEngine engine = new TemplateEngine(b -> {
         b.namespaces().put("tf", Functions.class);
         b.strict(false);
-    }).preprocessor(SqlTemplate::preprocess);
+    });
     private Supplier<Template> supplier;
     private Template sqlTemplate;
 
     public SqlTemplate(String sql) {
-        supplier = () -> engine.createTemplate(sql);
+        supplier = () -> engine.createTemplate(preprocess(sql));
     }
 
     public SqlTemplate(Supplier<String> fn) {
-        supplier = () -> engine.createTemplate(fn.get());
+        supplier = () -> engine.createTemplate(preprocess(fn.get()));
     }
 
     public SqlTemplate(Path path) {
-        supplier = () -> engine.getTemplate(path);
+        supplier = () -> engine.getTemplate(path, preprocess(IO.load(path)));
     }
 
     private static String preprocess(String sql) {
@@ -94,7 +95,6 @@ public class SqlTemplate {
     public Result process(Object vars) {
         var ctx = new TemplateContext(vars);
         String sql = getTemplate().execute(ctx);
-        log.info("sql:\n", sql.replace('\u007f', '~'));
         sql = adjust(sql);
         return new Result(sql, Sys.cast(ctx.get("__params")));
     }
@@ -166,6 +166,7 @@ public class SqlTemplate {
         public Result(String sql, List<Object> parameters) {
             this.sql = sql;
             this.parameters = parameters;
+            log.debug("result=\n", this);
         }
 
         @Override

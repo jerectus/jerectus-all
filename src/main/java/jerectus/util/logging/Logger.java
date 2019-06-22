@@ -1,80 +1,72 @@
 package jerectus.util.logging;
 
-import java.io.PrintWriter;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
-import jerectus.util.Sys;
+import java.util.logging.Level;
+import java.util.logging.LogManager;
 
 public class Logger {
-    public static enum Level {
-        DEBUG, INFO, WARN, ERROR
-    }
-
+    public static final Level ERROR = Level.SEVERE;
+    public static final Level WARN = Level.WARNING;
+    public static final Level INFO = Level.INFO;
+    public static final Level DEBUG = Level.FINE;
     private static final Map<String, Logger> loggers = new ConcurrentHashMap<>();
-    private static final DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss.SSS");
+    static {
+        var in = Logger.class.getResourceAsStream("/logging.properties");
+        if (in != null) {
+            try (in) {
+                LogManager.getLogManager().readConfiguration(in);
+            } catch (Exception e) {
+            }
+        }
+    }
+    private java.util.logging.Logger logger;
 
-    private String name;
-    private Level level = Level.INFO;
-    private PrintWriter out;
-
-    public Logger(String name) {
-        this.name = name;
-        out = new PrintWriter(System.out, true);
+    protected Logger(String name) {
+        logger = java.util.logging.Logger.getLogger(name);
     }
 
     public Level getLevel() {
-        return level;
+        return logger.getLevel();
     }
 
     public void setLevel(Level level) {
-        this.level = level;
+        logger.setLevel(level);
     }
 
     public void log(Level level, Object... values) {
-        if (level.compareTo(this.level) >= 0) {
-            out.print(dateTimeFormatter.format(ZonedDateTime.now()));
-            out.print(" ");
-            out.print(level);
-            out.print(" ");
-            out.print(name);
-            for (var value : values) {
-                out.print(" ");
-                if (value == null) {
-                    out.print("null");
-                } else if (value.getClass().isArray()) {
-                    out.print("[");
-                    var sep = "";
-                    for (var elem : Sys.each(value)) {
-                        out.print(sep);
-                        out.print(elem);
-                        sep = ", ";
-                    }
-                    out.print("]");
+        if (logger.isLoggable(level)) {
+            var sb = new StringBuilder();
+            Throwable t = null;
+            for (int i = 0; i < values.length; i++) {
+                if (i == values.length - 1 && values[i] instanceof Throwable) {
+                    t = (Throwable) values[i];
                 } else {
-                    out.print(value);
+                    sb.append(values[i]);
                 }
             }
-            out.println();
+            var s = sb.toString();
+            if (s.indexOf("\n") != -1) {
+                s = "\n\t" + s.replace("\n", "\n\t");
+            }
+            logger.log(level, s, t);
         }
     }
 
     public void debug(Object... values) {
-        log(Level.DEBUG, values);
+        log(DEBUG, values);
     }
 
     public void info(Object... values) {
-        log(Level.INFO, values);
+        log(INFO, values);
     }
 
     public void warn(Object... values) {
-        log(Level.WARN, values);
+        log(WARN, values);
     }
 
     public void error(Object... values) {
-        log(Level.ERROR, values);
+        log(ERROR, values);
     }
 
     public static Logger getLogger(String name) {
