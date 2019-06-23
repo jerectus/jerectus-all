@@ -1,4 +1,4 @@
-package jerectus.text;
+package jerectus.util;
 
 public class StringEditor implements CharSequence {
     private StringBuilder sb;

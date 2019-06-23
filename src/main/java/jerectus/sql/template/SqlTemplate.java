@@ -4,6 +4,7 @@ import java.lang.reflect.Array;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
@@ -165,7 +166,7 @@ public class SqlTemplate {
 
         public Result(String sql, List<Object> parameters) {
             this.sql = sql;
-            this.parameters = parameters;
+            this.parameters = Sys.ifNull(parameters, Collections.emptyList());
             log.debug("result=\n", this);
         }
 

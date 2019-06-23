@@ -10,8 +10,8 @@ import org.apache.commons.jexl3.MapContext;
 import jerectus.util.Sys;
 
 public class TemplateContext implements JexlContext {
-    JexlContext ctx;
-    Map<String, Object> attr = new HashMap<>();
+    private JexlContext ctx;
+    private Map<String, Object> attr = new HashMap<>();
     EachStat eachStat;
 
     @SuppressWarnings("unchecked")

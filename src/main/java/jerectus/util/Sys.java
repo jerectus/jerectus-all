@@ -33,6 +33,10 @@ public class Sys {
         return a.equals(b);
     }
 
+    public static <T> T ifNull(T value, T otherValue) {
+        return value != null ? value : otherValue;
+    }
+
     public static boolean isEmpty(String s) {
         return s == null || s.isEmpty();
     }
@@ -137,22 +141,34 @@ public class Sys {
         return sb.toString();
     }
 
-    public static <T> String join(Iterable<T> o, String delim, Function<T, String> fn) {
+    public static <T> String join(Object o, String delim, Function<T, String> fn) {
         StringBuilder sb = new StringBuilder();
         boolean first = true;
-        for (var it : o) {
+        for (var it : each(o)) {
             if (first) {
                 first = false;
             } else {
                 sb.append(delim);
             }
-            sb.append(fn.apply(it));
+            sb.append(fn.apply(Sys.cast(it)));
         }
         return sb.toString();
     }
 
+    public static <T> String join(Iterable<T> o, String delim, Function<T, String> fn) {
+        return join((Object) o, delim, fn);
+    }
+
+    public static <T> String join(Iterable<T> o, String delim) {
+        return join((Object) o, delim, Sys::toString);
+    }
+
     public static String join(String[] o, String delim, Function<String, String> fn) {
-        return join(new ArrayIterable<String>(o), delim, fn);
+        return join((Object) o, delim, fn);
+    }
+
+    public static String join(String[] o, String delim) {
+        return join((Object) o, delim, Sys::toString);
     }
 
     @SuppressWarnings("unchecked")

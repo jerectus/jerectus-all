@@ -7,6 +7,13 @@ public class Reflect {
         if (value == null) {
             return !type.isPrimitive();
         }
+        if (type == int.class) {
+            return value instanceof Integer;
+        } else if (type == char.class) {
+            return value instanceof Character;
+        } else if (type.isPrimitive()) {
+            return type.getName().equals(value.getClass().getSimpleName().toLowerCase());
+        }
         return type.isAssignableFrom(value.getClass());
     }
 
@@ -18,19 +25,16 @@ public class Reflect {
             } else {
                 for (var m : clazz.getMethods()) {
                     if (m.getName().equals(methodName) && m.getParameterCount() == args.length) {
-                        boolean found = true;
-                        for (int i = 0; i < args.length; i++) {
+                        for (int i = 0;; i++) {
+                            if (i >= args.length)
+                                return m;
                             if (!isAssignableFrom(m.getParameterTypes()[i], args[i])) {
-                                found = false;
                                 break;
                             }
                         }
-                        if (found) {
-                            return m;
-                        }
                     }
                 }
-                throw new RuntimeException();
+                throw new RuntimeException(new NoSuchMethodException(methodName));
             }
         } catch (Exception e) {
             throw Sys.asRuntimeException(e);

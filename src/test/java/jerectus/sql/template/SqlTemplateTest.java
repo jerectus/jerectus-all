@@ -18,4 +18,15 @@ public class SqlTemplateTest {
         vars.put("orderBy", 2);
         System.out.println(tpl.process(vars));
     }
+
+    @Test
+    public void test2() throws Exception {
+        Logger.getLogger("jerectus").setLevel(Logger.DEBUG);
+        var tpl = new SqlTemplate(Resources.get(this, "test1.sql"));
+        var vars = new HashMap<>();
+        vars.put("id", 1);
+        // vars.put("names", new String[] { "a", "b" });
+        vars.put("orderBy", 1);
+        System.out.println(tpl.process(vars));
+    }
 }

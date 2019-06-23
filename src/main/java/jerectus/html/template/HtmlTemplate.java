@@ -15,7 +15,7 @@ import org.jsoup.nodes.Node;
 import org.jsoup.nodes.TextNode;
 
 import jerectus.html.HtmlVisitor;
-import jerectus.text.StringEditor;
+import jerectus.util.StringEditor;
 import jerectus.util.Sys;
 import jerectus.util.regex.PatternMatcher;
 import jerectus.util.regex.Regex;
@@ -59,7 +59,7 @@ public class HtmlTemplate {
                 if (elem.is("select")) {
                     elem.select("option").forEach(opt -> {
                         opt.attr("v:model", model);
-                        opt.attr("innerText", opt.text());
+                        opt.attr("inner-text", opt.text());
                         opt.text("");
                     });
                 } else if (elem.is("textarea")) {
@@ -159,9 +159,9 @@ public class HtmlTemplate {
 
     private static String expand(String s, String ctx) {
         final Pattern ptn = Pattern.compile("(?s)\\\\|\\$(\\{(.*?)\\})?");
-        Function<String, String> fn = ctx.equals("@") ? t -> Functions.decode(t) : t -> t;
+        Function<String, String> fn = ctx.equals("@") ? t -> Functions.unescape(t) : t -> t;
         if (ctx.equals("@")) {
-            s = Functions.encode(s, "@");
+            s = Functions.escape(s, "@");
         }
         return Regex.replace(s, ptn, m -> {
             switch (m.group()) {
@@ -201,9 +201,9 @@ public class HtmlTemplate {
         if (m.matches(code, "==(.*)")) {
             return "<%=" + m.group(1) + "%>";
         } else if (m.matches(code, "=@(.*)")) {
-            return "<%=tf:encode(" + m.group(1).trim() + ", '@')%>";
+            return "<%=tf:escape(" + m.group(1).trim() + ", '@')%>";
         } else if (m.matches(code, "=(.*)")) {
-            return "<%=tf:encode(" + m.group(1).trim() + ", '')%>";
+            return "<%=tf:escape(" + m.group(1).trim() + ", '')%>";
         } else if (code.startsWith("%")) {
             return "<%" + code.substring(1).trim() + "%>";
         } else {
@@ -217,7 +217,7 @@ public class HtmlTemplate {
     }
 
     public static class Functions extends Template.Functions {
-        public static String encode(Object v, String ctx) {
+        public static String escape(Object v, String ctx) {
             if (v == null)
                 return "";
             String s = v.toString();
@@ -235,7 +235,7 @@ public class HtmlTemplate {
             return s;
         }
 
-        public static String decode(String s) {
+        public static String unescape(String s) {
             s = s.replace("&lt;", "<");
             s = s.replace("&gt;", ">");
             s = s.replace("&quot;", "\"");
@@ -261,8 +261,8 @@ public class HtmlTemplate {
             case "select":
                 break;
             case "option":
-                innerText = attributes.get("innerText");
-                attributes.remove("innerText");
+                innerText = attributes.get("inner-text");
+                attributes.remove("inner-text");
                 attributes.put("selected", matches(attributes.getOrDefault("value", innerText), value));
                 break;
             case "textarea":
@@ -279,7 +279,7 @@ public class HtmlTemplate {
                         if (attrName.equals("name") && attrVal != null) {
                             attrVal = nameof(attrVal.toString());
                         }
-                        sb.append(Functions.encode(attrVal, "@"));
+                        sb.append(Functions.escape(attrVal, "@"));
                         sb.append("\"");
                     }
                 }
