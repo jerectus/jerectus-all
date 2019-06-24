@@ -6,18 +6,17 @@
 </head>
 
 <body>
-    hello ${name}.
+    hello ${name}. ${}{name}
     <ul>
         <li v:bind="for: it in list;">
             <input name=":it">
+            <span>${it}</span>
         </li>
     </ul>
     <input name=":name">
     <select name=":name">
         <option></option>
-        <option>Aso</option>
-        <option>Abe</option>
-        <option>Koizumi</option>
+        <option v:bind="for: it in ['Abe','Aso','Koizumi']">${it}</option>
     </select>
 </body>
 

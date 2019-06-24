@@ -5,6 +5,7 @@ import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -75,6 +76,14 @@ public class TemplateEngine {
         return createTemplate(path, null);
     }
 
+    public void checkScript(String script, String place) {
+        try {
+            engine.createExpression(script);
+        } catch (JexlException e) {
+            log(Paths.get(place), script, e);
+        }
+    }
+
     static final Pattern TEMPLATE_PTN = Pattern.compile("<(%[=%]?)(.*?)%>|\\$\\{(.*?)\\}", Pattern.DOTALL);
 
     Template compile(Path path, String s) {
@@ -83,7 +92,7 @@ public class TemplateEngine {
             if (s == null) {
                 s = Try.get(() -> Files.readString(path, StandardCharsets.UTF_8));
             }
-            log.debug("[", path, "]\n", s);
+            log.debug("[ ", path, " ]\n", s);
             var blocks = new StringEditor();
             var pm = new PatternMatcher();
             Template parent = path != null && pm.matches(s, "(?s)<%%extends\\s+([^>]+?)%>.*")
@@ -182,7 +191,7 @@ public class TemplateEngine {
             }
             fn.text(s.substring(pos));
             s = sb.toString();
-            log.debug("[", path, "]\n", s);
+            log.debug("[ ", path, " ]\n", s);
             return new Template(parent, engine.createScript(s), path);
         } catch (JexlException e) {
             log(path, sb, e);
@@ -200,7 +209,7 @@ public class TemplateEngine {
         var l = info.getLine();
         var c = info.getColumn();
         var lines = src.toString().split("(?s)\r\n|\n");
-        out.println("[" + path + "] (" + l + ":" + c + ")");
+        out.println("[ " + path + " ] (" + l + ":" + c + ")");
         int i = Math.max(l - 5, 1);
         int n = Math.min(l + 5, lines.length);
         for (; i <= n; i++) {

@@ -5,8 +5,8 @@ import java.io.Writer;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Comment;
@@ -17,12 +17,14 @@ import org.jsoup.nodes.TextNode;
 import jerectus.html.HtmlVisitor;
 import jerectus.util.StringEditor;
 import jerectus.util.Sys;
+import jerectus.util.logging.Logger;
 import jerectus.util.regex.PatternMatcher;
 import jerectus.util.regex.Regex;
 import jerectus.util.template.Template;
 import jerectus.util.template.TemplateEngine;
 
 public class HtmlTemplate {
+    private static final Logger log = Logger.getLogger(HtmlTemplate.class);
     private static final TemplateEngine engine = new TemplateEngine(Functions.class);
     private Template tmpl;
 
@@ -94,7 +96,7 @@ public class HtmlTemplate {
                                 sb.append("`", attr.getKey().substring(7), "`:", attr.getValue());
                             } else {
                                 sb.append("`", attr.getKey(), "`:");
-                                sb.append(attr.getValue() == null ? "true" : Template.quote(attr.getValue()));
+                                sb.append(attr.getValue() == null ? "true" : makeExpr(attr.getValue()));
                             }
                         });
                         sb.append("}, ", model, ")%>");
@@ -149,6 +151,27 @@ public class HtmlTemplate {
         }
     }
 
+    private static String makeExpr(String s) {
+        var p = Pattern.compile("\\$\\{([^\\}]+)\\}");
+        var m = p.matcher(s);
+        int pos = 0;
+        var sb = new StringEditor();
+        while (m.find()) {
+            if (pos < m.start()) {
+                sb.append("+`", s.substring(pos, m.start()), "`");
+            }
+            sb.append("+", m.group(1));
+            pos = m.end();
+        }
+        if (pos < s.length()) {
+            sb.append("+`", s.substring(pos), "`");
+        }
+        if (sb.length() > 0 && sb.charAt(0) == '+') {
+            sb.delete(0, 1);
+        }
+        return sb.length() > 0 ? sb.toString() : "``";
+    }
+
     public void render(Writer out, Object self) {
         tmpl.execute(self, out);
     }
@@ -158,7 +181,8 @@ public class HtmlTemplate {
     }
 
     private static String expand(String s, String ctx) {
-        final Pattern ptn = Pattern.compile("(?s)\\\\|\\$(\\{(.*?)\\})?");
+        // final Pattern ptn = Pattern.compile("(?s)\\\\|\\$(\\{(.*?)\\})");
+        final Pattern ptn = Pattern.compile("(?s)\\\\|\\$(\\{(.*?)\\})");
         Function<String, String> fn = ctx.equals("@") ? t -> Functions.unescape(t) : t -> t;
         if (ctx.equals("@")) {
             s = Functions.escape(s, "@");
@@ -167,9 +191,9 @@ public class HtmlTemplate {
             switch (m.group()) {
             case "\\":
                 return "\\\\";
-            case "$":
+            // case "$":
             case "${}":
-                return "\\$";
+                return "$<% %>";
             default:
                 return makeScript("=" + ctx + fn.apply(m.group(2)));
             }
@@ -177,23 +201,39 @@ public class HtmlTemplate {
     }
 
     private static void applyBind(Element elem, String bind) {
-        // Pattern ptn = Pattern.compile("\"[]\"");
-        Stream.of(bind.split(";")).forEach(it -> {
-            PatternMatcher m = new PatternMatcher();
-            if (m.matches(it, "\\s*model\\s*:\\s*(.*)\\s*")) {
-                elem.attr("v:model", m.group(1));
-            } else if (m.matches(it, "\\s*@(\\w+)\\s*:\\s*(.*)\\s*")) {
-                elem.attr("v:attr", true);
-                elem.attr("v:attr:" + m.group(1), m.group(2));
-            } else if (m.matches(it, "\\s*(if|for)\\s*:\\s*(.*)\\s*")) {
+        Pattern ptn = Pattern.compile("([^:;]+)(:([^;]+))?(;|$)");
+        Matcher m = ptn.matcher(bind);
+        while (m.find()) {
+            var type = Sys.trim(m.group(1));
+            var args = Sys.trim(m.group(3));
+            switch (type) {
+            case "model":
+                elem.attr("v:model", args);
+                break;
+            case "if":
+            case "for": {
                 Node node = elem.previousSibling();
                 if (!(node instanceof TextNode) || !((TextNode) node).text().matches("\\s*")) {
                     node = elem;
                 }
-                node.before(new Comment("%" + m.group(1) + " " + m.group(2)));
-                elem.after(new Comment("%end-" + m.group(1)));
+                node.before(new Comment("%" + type + " " + args));
+                elem.after(new Comment("%end-" + type));
+                break;
             }
-        });
+            default:
+                if (type.startsWith("@")) {
+                    elem.attr("v:attr", true);
+                    elem.attr("v:attr:" + type.substring(1), args);
+                } else {
+                    log.warn("unknown directive: ", type, " in ", getElementPath(elem), "[", bind, "]");
+                }
+                break;
+            }
+        }
+    }
+
+    private static String getElementPath(Element elem) {
+        return elem.hasParent() ? getElementPath(elem.parent()) + "/" + elem.tagName() : "";
     }
 
     private static String makeScript(String code) {

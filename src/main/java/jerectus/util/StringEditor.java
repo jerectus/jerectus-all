@@ -37,4 +37,9 @@ public class StringEditor implements CharSequence {
         }
         return this;
     }
+
+    public StringEditor delete(int start, int end) {
+        sb.delete(start, end);
+        return this;
+    }
 }

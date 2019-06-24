@@ -73,6 +73,10 @@ public class Sys {
         return substring(s, start, Integer.MAX_VALUE);
     }
 
+    public static String trim(String s) {
+        return s == null ? null : s.trim();
+    }
+
     public static String capitalize(String s) {
         if (s == null || s.isEmpty())
             return s;
