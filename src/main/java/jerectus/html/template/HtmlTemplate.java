@@ -94,7 +94,8 @@ public class HtmlTemplate {
                                 sb.append("`", attr.getKey().substring(7), "`:", attr.getValue());
                             } else {
                                 sb.append("`", attr.getKey(), "`:");
-                                sb.append(attr.getValue() == null ? "true" : makeExpr(attr.getValue()));
+                                sb.append(attr.getValue() == null ? "true"
+                                        : TemplateEngine.compileFragment(attr.getValue(), 'E'));
                             }
                         });
                         sb.append("}, ", model, ")%>");
@@ -106,7 +107,7 @@ public class HtmlTemplate {
                             sb.append(attr.getKey());
                             if (attr.getValue() != null) {
                                 sb.append("=\"");
-                                sb.append(expand(attr.getValue(), "@"));
+                                sb.append(TemplateEngine.compileFragment(attr.getValue(), 'T', "tf:escape(?, '@')"));
                                 sb.append("\"");
                             }
                         });
@@ -127,7 +128,7 @@ public class HtmlTemplate {
                 }
 
                 public void visit(TextNode textNode) {
-                    sb.append(expand(textNode.outerHtml(), ""));
+                    sb.append(TemplateEngine.compileFragment(textNode.outerHtml(), 'T', "tf:escape(?, '')"));
                 }
 
                 public void visit(Comment comment) {
@@ -149,20 +150,12 @@ public class HtmlTemplate {
         }
     }
 
-    private static String makeExpr(String s) {
-        return TemplateEngine.compileFragment(s, 'E', "", "");
-    }
-
     public void render(Writer out, Object self) {
         tmpl.execute(self, out);
     }
 
     public void render(PrintStream out, Object self) {
         tmpl.execute(self, out);
-    }
-
-    private static String expand(String s, String ctx) {
-        return TemplateEngine.compileFragment(s, 'T', "tf:escape(", ", '" + ctx + "')");
     }
 
     private static void applyBind(Element elem, String bind) {

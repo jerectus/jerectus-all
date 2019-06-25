@@ -229,41 +229,53 @@ public class TemplateEngine {
         return Template.quote(s);
     }
 
-    public static String compileFragment(String s, char target, String escapeStart, String escapeEnd) {
+    public static String compileFragment(String s, char target, Function<String, String> escape) {
         var p = Pattern.compile("\\$\\{(.*?)\\}");
         var m = p.matcher(s);
         var sb = new StringEditor();
         int pos = 0;
-        while (m.find()) {
-            if (pos < m.start()) {
-                var t = s.substring(pos, m.start());
-                if (target == 'E') {
+        if (target == 'E') {
+            while (m.find()) {
+                if (pos < m.start()) {
+                    var t = s.substring(pos, m.start());
                     sb.append("+", quote(t));
-                } else {
+                }
+                sb.append("+", escape.apply(m.group(1)));
+                pos = m.end();
+            }
+            if (pos < s.length()) {
+                var t = s.substring(pos);
+                sb.append("+", quote(t));
+            }
+            if (sb.length() > 0 && sb.charAt(0) == '+') {
+                sb.delete(0, 1);
+            }
+            if (sb.length() == 0) {
+                sb.append("``");
+            }
+
+        } else {
+            while (m.find()) {
+                if (pos < m.start()) {
+                    var t = s.substring(pos, m.start());
                     sb.append(t);
                 }
+                sb.append("<%=", escape.apply(m.group(1)), "%>");
+                pos = m.end();
             }
-            if (target == 'E') {
-                sb.append("+", escapeStart, m.group(1), escapeEnd);
-            } else {
-                sb.append("<%=", escapeStart, m.group(1), escapeEnd, "%>");
-            }
-            pos = m.end();
-        }
-        if (pos < s.length()) {
-            var t = s.substring(pos);
-            if (target == 'E') {
-                sb.append("+", quote(t));
-            } else {
+            if (pos < s.length()) {
+                var t = s.substring(pos);
                 sb.append(t);
             }
         }
-        if (target == 'E' && sb.length() > 0 && sb.charAt(0) == '+') {
-            sb.delete(0, 1);
-        }
-        if (target == 'E' && sb.length() == 0) {
-            sb.append("``");
-        }
         return sb.toString();
+    }
+
+    public static String compileFragment(String s, char target, String escape) {
+        return compileFragment(s, target, v -> escape.replace("?", v));
+    }
+
+    public static String compileFragment(String s, char target) {
+        return compileFragment(s, target, v -> v);
     }
 }

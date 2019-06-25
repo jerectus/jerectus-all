@@ -7,17 +7,16 @@
 
 <body>
     hello ${name}.
-    <div class="${name}">!</div>
     <ul>
         <li v:bind="for: it in list;">
             <input name=":it">
-            <span class="${it}!">${it}`\</span>
+            <span>${it}</span>
         </li>
     </ul>
     <input name=":name">
     <select name=":name">
         <option></option>
-        <option v:bind="for: it in ['Abe','Aso','Koizumi']">${it}!</option>
+        <option v:bind="for: it in ['Abe','Aso','Koizumi']">${it}</option>
     </select>
 </body>
 
