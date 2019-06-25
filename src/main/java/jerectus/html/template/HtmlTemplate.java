@@ -4,7 +4,6 @@ import java.io.PrintStream;
 import java.io.Writer;
 import java.nio.file.Path;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -19,7 +18,6 @@ import jerectus.util.StringEditor;
 import jerectus.util.Sys;
 import jerectus.util.logging.Logger;
 import jerectus.util.regex.PatternMatcher;
-import jerectus.util.regex.Regex;
 import jerectus.util.template.Template;
 import jerectus.util.template.TemplateEngine;
 
@@ -152,24 +150,7 @@ public class HtmlTemplate {
     }
 
     private static String makeExpr(String s) {
-        var p = Pattern.compile("\\$\\{([^\\}]+)\\}");
-        var m = p.matcher(s);
-        int pos = 0;
-        var sb = new StringEditor();
-        while (m.find()) {
-            if (pos < m.start()) {
-                sb.append("+`", s.substring(pos, m.start()), "`");
-            }
-            sb.append("+", m.group(1));
-            pos = m.end();
-        }
-        if (pos < s.length()) {
-            sb.append("+`", s.substring(pos), "`");
-        }
-        if (sb.length() > 0 && sb.charAt(0) == '+') {
-            sb.delete(0, 1);
-        }
-        return sb.length() > 0 ? sb.toString() : "``";
+        return TemplateEngine.compileFragment(s, 'E', "", "");
     }
 
     public void render(Writer out, Object self) {
@@ -181,23 +162,7 @@ public class HtmlTemplate {
     }
 
     private static String expand(String s, String ctx) {
-        // final Pattern ptn = Pattern.compile("(?s)\\\\|\\$(\\{(.*?)\\})");
-        final Pattern ptn = Pattern.compile("(?s)\\\\|\\$(\\{(.*?)\\})");
-        Function<String, String> fn = ctx.equals("@") ? t -> Functions.unescape(t) : t -> t;
-        if (ctx.equals("@")) {
-            s = Functions.escape(s, "@");
-        }
-        return Regex.replace(s, ptn, m -> {
-            switch (m.group()) {
-            case "\\":
-                return "\\\\";
-            // case "$":
-            case "${}":
-                return "$<% %>";
-            default:
-                return makeScript("=" + ctx + fn.apply(m.group(2)));
-            }
-        });
+        return TemplateEngine.compileFragment(s, 'T', "tf:escape(", ", '" + ctx + "')");
     }
 
     private static void applyBind(Element elem, String bind) {
@@ -240,8 +205,6 @@ public class HtmlTemplate {
         var m = new PatternMatcher();
         if (m.matches(code, "==(.*)")) {
             return "<%=" + m.group(1) + "%>";
-        } else if (m.matches(code, "=@(.*)")) {
-            return "<%=tf:escape(" + m.group(1).trim() + ", '@')%>";
         } else if (m.matches(code, "=(.*)")) {
             return "<%=tf:escape(" + m.group(1).trim() + ", '')%>";
         } else if (code.startsWith("%")) {

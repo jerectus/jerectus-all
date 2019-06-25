@@ -228,4 +228,42 @@ public class TemplateEngine {
     private static String quote(String s) {
         return Template.quote(s);
     }
+
+    public static String compileFragment(String s, char target, String escapeStart, String escapeEnd) {
+        var p = Pattern.compile("\\$\\{(.*?)\\}");
+        var m = p.matcher(s);
+        var sb = new StringEditor();
+        int pos = 0;
+        while (m.find()) {
+            if (pos < m.start()) {
+                var t = s.substring(pos, m.start());
+                if (target == 'E') {
+                    sb.append("+", quote(t));
+                } else {
+                    sb.append(t);
+                }
+            }
+            if (target == 'E') {
+                sb.append("+", escapeStart, m.group(1), escapeEnd);
+            } else {
+                sb.append("<%=", escapeStart, m.group(1), escapeEnd, "%>");
+            }
+            pos = m.end();
+        }
+        if (pos < s.length()) {
+            var t = s.substring(pos);
+            if (target == 'E') {
+                sb.append("+", quote(t));
+            } else {
+                sb.append(t);
+            }
+        }
+        if (target == 'E' && sb.length() > 0 && sb.charAt(0) == '+') {
+            sb.delete(0, 1);
+        }
+        if (target == 'E' && sb.length() == 0) {
+            sb.append("``");
+        }
+        return sb.toString();
+    }
 }

@@ -167,7 +167,7 @@ public class SqlTemplate {
         public Result(String sql, List<Object> parameters) {
             this.sql = sql;
             this.parameters = Sys.ifNull(parameters, Collections.emptyList());
-            log.debug("result=\n", this);
+            log.debug(Result.class.getName(), ":\n", this);
         }
 
         @Override
