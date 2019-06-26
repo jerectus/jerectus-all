@@ -34,7 +34,7 @@ public class HtmlTemplate {
         try {
             var doc = Jsoup.parse(path.toFile(), "UTF-8", "");
             doc.outputSettings().prettyPrint(false);
-            Sys.last(doc.select("body").first().childNodes(), it -> it.remove());
+            Sys.last(doc.selectFirst("body").childNodes(), it -> it.remove());
             doc.select("script").forEach(elem -> {
                 if (elem.attr("type").equals("text/jexl")) {
                     elem.replaceWith(new Comment("%%" + elem.html()));

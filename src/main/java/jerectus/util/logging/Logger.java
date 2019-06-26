@@ -47,7 +47,7 @@ public class Logger {
             }
             var s = sb.toString();
             if (s.indexOf("\n") != -1) {
-                s = "\n\t" + s.replace("\n", "\n\t");
+                s = s.replace("\n", "\n\t");
             }
             logger.log(level, s, t);
         }

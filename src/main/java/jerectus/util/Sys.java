@@ -253,20 +253,20 @@ public class Sys {
         }
     }
 
-    public static <T> T first(List<T> list, Consumer<T> fn) {
-        return list != null && list.size() > 0 ? with(list.get(0), fn) : null;
-    }
-
     public static <T> T first(List<T> list) {
-        return first(list, null);
+        return list != null && list.size() > 0 ? list.get(0) : null;
     }
 
-    public static <T> T last(List<T> list, Consumer<T> fn) {
-        return list != null && list.size() > 0 ? with(list.get(list.size() - 1), fn) : null;
+    public static <T> T first(List<T> list, Consumer<T> fn) {
+        return with(first(list), fn);
     }
 
     public static <T> T last(List<T> list) {
-        return last(list, null);
+        return list != null && list.size() > 0 ? list.get(list.size() - 1) : null;
+    }
+
+    public static <T> T last(List<T> list, Consumer<T> fn) {
+        return with(last(list), fn);
     }
 
     public static <T, C extends Collection<T>> C copy(C c, Iterable<T> it) {
@@ -277,7 +277,7 @@ public class Sys {
     }
 
     public static <T> T with(T it, Consumer<T> fn) {
-        if (fn != null) {
+        if (it != null && fn != null) {
             fn.accept(it);
         }
         return it;
