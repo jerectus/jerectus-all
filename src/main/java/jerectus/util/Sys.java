@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -252,6 +253,22 @@ public class Sys {
         }
     }
 
+    public static <T> T first(List<T> list, Consumer<T> fn) {
+        return list != null && list.size() > 0 ? with(list.get(0), fn) : null;
+    }
+
+    public static <T> T first(List<T> list) {
+        return first(list, null);
+    }
+
+    public static <T> T last(List<T> list, Consumer<T> fn) {
+        return list != null && list.size() > 0 ? with(list.get(list.size() - 1), fn) : null;
+    }
+
+    public static <T> T last(List<T> list) {
+        return last(list, null);
+    }
+
     public static <T, C extends Collection<T>> C copy(C c, Iterable<T> it) {
         for (var v : it) {
             c.add(v);
@@ -259,8 +276,10 @@ public class Sys {
         return c;
     }
 
-    public static <T> T eval(T it, Consumer<T> fn) {
-        fn.accept(it);
+    public static <T> T with(T it, Consumer<T> fn) {
+        if (fn != null) {
+            fn.accept(it);
+        }
         return it;
     }
 

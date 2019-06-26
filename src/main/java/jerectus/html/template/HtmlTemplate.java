@@ -34,9 +34,10 @@ public class HtmlTemplate {
         try {
             var doc = Jsoup.parse(path.toFile(), "UTF-8", "");
             doc.outputSettings().prettyPrint(false);
+            Sys.last(doc.select("body").first().childNodes(), it -> it.remove());
             doc.select("script").forEach(elem -> {
                 if (elem.attr("type").equals("text/jexl")) {
-                    elem.replaceWith(new Comment("%" + elem.html()));
+                    elem.replaceWith(new Comment("%%" + elem.html()));
                 }
             });
             doc.select("[v:bind]").forEach(elem -> {
@@ -254,6 +255,7 @@ public class HtmlTemplate {
                     attributes.put("checked", matches(attributes.get("value"), value));
                     break;
                 }
+                break;
             case "select":
                 break;
             case "option":

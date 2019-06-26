@@ -3,6 +3,9 @@
 
 <head>
     <title>test1</title>
+    <script type="text/jexl">
+        var names = ['Abe','Aso','Koizumi'];
+    </script>
 </head>
 
 <body>
@@ -16,7 +19,7 @@
     <input name=":name">
     <select name=":name">
         <option></option>
-        <option v:bind="for: it in ['Abe','Aso','Koizumi']">${it}</option>
+        <option v:bind="for: it in names">${it}</option>
     </select>
 </body>
 
