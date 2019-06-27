@@ -30,6 +30,19 @@ public class HtmlTemplate {
         tmpl = engine.getTemplate(path, HtmlTemplate::preprocessor);
     }
 
+    public void render(Writer out, Object self) {
+        tmpl.execute(self, out);
+    }
+
+    public void render(PrintStream out, Object self) {
+        tmpl.execute(self, out);
+    }
+
+    @Override
+    public String toString() {
+        return tmpl.toString();
+    }
+
     public static String preprocessor(Path path) {
         try {
             var doc = Jsoup.parse(path.toFile(), "UTF-8", "");
@@ -58,6 +71,7 @@ public class HtmlTemplate {
                     elem.attr("name", model);
                 }
                 if (elem.is("select")) {
+                    elem.removeAttr("v:model");
                     elem.select("option").forEach(opt -> {
                         opt.attr("v:model", model);
                         opt.attr("inner-text", opt.text());
@@ -82,38 +96,7 @@ public class HtmlTemplate {
                     if (elem.is("html")) {
                         sb.append("\n");
                     }
-                    if (elem.hasAttr("v:model") || elem.hasAttr("v:attr")) {
-                        String model = Sys.ifEmpty(elem.attr("v:model"), "null");
-                        elem.removeAttr("v:model");
-                        elem.removeAttr("v:attr");
-                        sb.append("<%=tf:tag(`", elem.tagName(), "`, {");
-                        String[] sep = { "" };
-                        elem.attributes().forEach(attr -> {
-                            sb.append(sep[0]);
-                            sep[0] = ", ";
-                            if (attr.getKey().startsWith("v:attr:")) {
-                                sb.append("`", attr.getKey().substring(7), "`:", attr.getValue());
-                            } else {
-                                sb.append("`", attr.getKey(), "`:");
-                                sb.append(attr.getValue() == null ? "true"
-                                        : TemplateEngine.compileFragment(attr.getValue(), 'E'));
-                            }
-                        });
-                        sb.append("}, ", model, ")%>");
-                    } else {
-                        sb.append("<");
-                        sb.append(elem.tagName());
-                        elem.attributes().forEach(attr -> {
-                            sb.append(" ");
-                            sb.append(attr.getKey());
-                            if (attr.getValue() != null) {
-                                sb.append("=\"");
-                                sb.append(TemplateEngine.compileFragment(attr.getValue(), 'T', "tf:escape(?, '@')"));
-                                sb.append("\"");
-                            }
-                        });
-                        sb.append(">");
-                    }
+                    element(elem);
                     if (elem.is("html")) {
                         sb.append("\n");
                     }
@@ -144,19 +127,46 @@ public class HtmlTemplate {
                 public void visit(Node node) {
                     sb.append(node.outerHtml());
                 }
+
+                private void element(Element elem) {
+                    if (elem.hasAttr("v:model") || elem.hasAttr("v:attr")) {
+                        String model = Sys.ifEmpty(elem.attr("v:model"), "null");
+                        elem.removeAttr("v:model");
+                        elem.removeAttr("v:attr");
+                        sb.append("<%=tf:tag(`", elem.tagName(), "`, {");
+                        String[] sep = { "" };
+                        elem.attributes().forEach(attr -> {
+                            sb.append(sep[0]);
+                            sep[0] = ", ";
+                            if (attr.getKey().startsWith("v:attr:")) {
+                                sb.append("`", attr.getKey().substring(7), "`:", attr.getValue());
+                            } else {
+                                sb.append("`", attr.getKey(), "`:");
+                                sb.append(attr.getValue() == null ? "true"
+                                        : TemplateEngine.compileFragment(attr.getValue(), 'E'));
+                            }
+                        });
+                        sb.append("}, ", model, ")%>");
+                    } else {
+                        sb.append("<");
+                        sb.append(elem.tagName());
+                        elem.attributes().forEach(attr -> {
+                            sb.append(" ");
+                            sb.append(attr.getKey());
+                            if (attr.toString().contains("=")) {
+                                sb.append("=\"");
+                                sb.append(TemplateEngine.compileFragment(attr.getValue(), 'T', "tf:escape(?, '@')"));
+                                sb.append("\"");
+                            }
+                        });
+                        sb.append(">");
+                    }
+                }
             });
             return sb.toString();
         } catch (Exception e) {
             throw Sys.asRuntimeException(e);
         }
-    }
-
-    public void render(Writer out, Object self) {
-        tmpl.execute(self, out);
-    }
-
-    public void render(PrintStream out, Object self) {
-        tmpl.execute(self, out);
     }
 
     private static void applyBind(Element elem, String bind) {
@@ -206,11 +216,6 @@ public class HtmlTemplate {
         } else {
             return "<%%" + code + "%>";
         }
-    }
-
-    @Override
-    public String toString() {
-        return tmpl.toString();
     }
 
     public static class Functions extends Template.Functions {
@@ -277,7 +282,7 @@ public class HtmlTemplate {
                         if (attrName.equals("name") && attrVal != null) {
                             attrVal = nameof(attrVal.toString());
                         }
-                        sb.append(Functions.escape(attrVal, "@"));
+                        sb.append(escape(attrVal, "@"));
                         sb.append("\"");
                     }
                 }
