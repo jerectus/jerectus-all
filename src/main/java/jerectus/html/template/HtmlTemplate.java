@@ -23,7 +23,10 @@ import jerectus.util.template.TemplateEngine;
 
 public class HtmlTemplate {
     private static final Logger log = Logger.getLogger(HtmlTemplate.class);
-    private static final TemplateEngine engine = new TemplateEngine(Functions.class);
+    private static final TemplateEngine engine = new TemplateEngine(b -> {
+        b.strict(false);
+        b.namespaces().put("tf", Functions.class);
+    });
     private Template tmpl;
 
     public HtmlTemplate(Path path) {
@@ -99,6 +102,10 @@ public class HtmlTemplate {
                     element(elem);
                     if (elem.is("html")) {
                         sb.append("\n");
+                    } else if (elem.is("body")) {
+                        sb.append("<%=__error__%>");
+                    } else if (elem.is("form")) {
+                        sb.append("<%=tf:tag(`input`, {`type`:`hidden`, `name`:`--view-state`}, __viewState__)%>");
                     }
                 }
 
@@ -247,6 +254,7 @@ public class HtmlTemplate {
 
         public static String tag(String tagName, Map<String, Object> attributes, Object value) {
             Object innerText = null;
+            boolean isCheckbox = false;
             switch (tagName) {
             case "input":
                 switch (Sys.toString(attributes.getOrDefault("type", "text"))) {
@@ -256,6 +264,8 @@ public class HtmlTemplate {
                     attributes.put("value", value);
                     break;
                 case "checkbox":
+                    isCheckbox = true;
+                    // fall through
                 case "radio":
                     attributes.put("checked", matches(attributes.get("value"), value));
                     break;
@@ -273,6 +283,7 @@ public class HtmlTemplate {
                 break;
             }
             var sb = new StringEditor();
+            String[] name = { null };
             sb.append("<", tagName);
             attributes.forEach((attrName, attrVal) -> {
                 if (!Sys.eq(attrVal, false)) {
@@ -280,7 +291,8 @@ public class HtmlTemplate {
                     if (!Sys.eq(attrVal, true)) {
                         sb.append("=\"");
                         if (attrName.equals("name") && attrVal != null) {
-                            attrVal = nameof(attrVal.toString());
+                            name[0] = nameof(attrVal.toString());
+                            attrVal = name[0];
                         }
                         sb.append(escape(attrVal, "@"));
                         sb.append("\"");
@@ -288,6 +300,11 @@ public class HtmlTemplate {
                 }
             });
             sb.append(">");
+            if (isCheckbox && name[0] != null) {
+                sb.append("<input type=\"hidden\" name=\"");
+                sb.append(name[0]);
+                sb.append("--default\">");
+            }
             if (innerText != null) {
                 sb.append(innerText);
             }

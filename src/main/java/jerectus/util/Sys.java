@@ -1,9 +1,11 @@
 package jerectus.util;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -12,6 +14,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -40,6 +43,10 @@ public class Sys {
 
     public static boolean isEmpty(String s) {
         return s == null || s.isEmpty();
+    }
+
+    public static boolean isEmpty(Object o) {
+        return o instanceof String ? isEmpty((String) o) : size(o) == 0;
     }
 
     public static String ifEmpty(String s, String t) {
@@ -98,7 +105,7 @@ public class Sys {
         return s.replaceAll("([a-z])([A-Z])", "$1_$2");
     }
 
-    public static RuntimeException asRuntimeException(Exception e) {
+    public static RuntimeException asRuntimeException(Throwable e) {
         throw e instanceof RuntimeException ? (RuntimeException) e
                 : e instanceof IOException ? new UncheckedIOException((IOException) e) : new RuntimeException(e);
     }
@@ -174,6 +181,28 @@ public class Sys {
 
     public static String join(String[] o, String delim) {
         return join((Object) o, delim, Sys::toString);
+    }
+
+    public static <T> int indexOf(T[] array, T value) {
+        for (int i = 0; i < array.length; i++) {
+            if (eq(array[i], value)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T> T[] join(T[]... arrays) {
+        List<T> list = new ArrayList<>();
+        T[] ref = null;
+        for (var array : arrays) {
+            if (array != null) {
+                addAll(list, array);
+                ref = array;
+            }
+        }
+        return list.toArray(ref);
     }
 
     @SuppressWarnings("unchecked")
@@ -291,5 +320,20 @@ public class Sys {
                 // do nothing
             }
         }
+    }
+
+    public static Properties loadProperties(Class<?> clazz, String name) {
+        Function<String, InputStream> fn = clazz == null ? Sys.class.getClassLoader()::getResourceAsStream
+                : clazz::getResourceAsStream;
+        var props = new Properties();
+        var in = fn.apply("/" + name + ".properties");
+        if (in != null) {
+            try (in) {
+                props.load(in);
+            } catch (Exception e) {
+                throw asRuntimeException(e);
+            }
+        }
+        return props;
     }
 }

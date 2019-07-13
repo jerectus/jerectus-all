@@ -1,9 +1,11 @@
 package jerectus.util.logging;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.FileHandler;
 import java.util.logging.Level;
-import java.util.logging.LogManager;
 
 public class Logger {
     public static final Level ERROR = Level.SEVERE;
@@ -11,15 +13,7 @@ public class Logger {
     public static final Level INFO = Level.INFO;
     public static final Level DEBUG = Level.FINE;
     private static final Map<String, Logger> loggers = new ConcurrentHashMap<>();
-    static {
-        var in = Logger.class.getResourceAsStream("/logging.properties");
-        if (in != null) {
-            try (in) {
-                LogManager.getLogManager().readConfiguration(in);
-            } catch (Exception e) {
-            }
-        }
-    }
+
     private java.util.logging.Logger logger;
 
     protected Logger(String name) {
@@ -75,5 +69,39 @@ public class Logger {
 
     public static Logger getLogger(Class<?> clazz) {
         return getLogger(clazz.getName());
+    }
+
+    public static void setup(String name, Level level) {
+        try {
+            var logger = java.util.logging.Logger.getLogger(name);
+            logger.setUseParentHandlers(false);
+
+            for (var h : logger.getHandlers()) {
+                if (h instanceof FileHandler) {
+                    ((FileHandler) h).close();
+                }
+                logger.removeHandler(h);
+            }
+
+            var f = new LogFormatter();
+            {
+                var h = new FileHandler("./logs/app.%g.%u.log", 50000, 2, true);
+                h.setEncoding("UTF-8");
+                h.setFormatter(f);
+                h.setLevel(Level.ALL);
+                logger.addHandler(h);
+            }
+            {
+                var h = new ConsoleHandler();
+                h.setEncoding("UTF-8");
+                h.setFormatter(f);
+                h.setLevel(Level.WARNING);
+                logger.addHandler(h);
+            }
+
+            logger.setLevel(level);
+        } catch (SecurityException | IOException e) {
+            e.printStackTrace();
+        }
     }
 }

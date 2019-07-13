@@ -86,4 +86,9 @@ public class BeanProperty {
             return result;
         return null;
     }
+
+    public Annotation[] getAnnotations() {
+        return Sys.join(new Annotation[0], getter != null ? getter.getAnnotations() : null,
+                field != null ? field.getAnnotations() : null);
+    }
 }

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>test1</title>
+    <style>
+        .table {
+            border-collapse: collapse;
+            border: 1px solid #ccc;
+        }
+
+        .table th,
+        .table td {
+            border: 1px solid #ccc;
+        }
+
+        .matrix th,
+        .matrix td {
+            text-align: center;
+            width: 4em;
+        }
+    </style>
+</head>
+
+<body>
+    <div>hello ${name}!</div>
+    <form method="POST">
+        <input name=":name"><br>
+        <input name=":num" value="1">
+        <button>Apply</button>
+        <button name="--minus">-</button>
+        <button name="--plus">+</button>
+        <table class="table matrix" v:bind="if: tf:isNumber(num);">
+            <tr>
+                <th></th>
+                <th v:bind="for: x in 1..num">${x}</th>
+            </tr>
+            <tr v:bind="for: y in 1..num">
+                <th>${y}</th>
+                <td v:bind="for: x in 1..num">${x * y}</td>
+            </tr>
+        </table>
+    </form>
+</body>
+
+</html>

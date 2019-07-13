@@ -5,6 +5,7 @@ import java.util.Iterator;
 import jerectus.util.Sys;
 
 public class EachStat implements Iterable<EachStat> {
+    TemplateContext ctx;
     EachStat parent;
     Object values;
     String valuesExpr;
@@ -14,13 +15,19 @@ public class EachStat implements Iterable<EachStat> {
     int index = -1;
     Object value;
 
-    public EachStat(EachStat parent, Object values, String valuesExpr, String varName, String baseName) {
-        this.parent = parent;
+    public EachStat(TemplateContext ctx, Object values, String valuesExpr, String varName) {
+        this.ctx = ctx;
+        this.parent = ctx.eachStat;
         this.values = values;
         this.valuesExpr = valuesExpr;
         this.varName = varName;
-        this.baseName = baseName;
+        this.baseName = ctx.nameof(valuesExpr);
         this.size = Sys.size(values);
+        ctx.eachStat = this;
+    }
+
+    public void end() {
+        ctx.eachStat = parent;
     }
 
     @Override
@@ -29,7 +36,11 @@ public class EachStat implements Iterable<EachStat> {
         return new Iterator<EachStat>() {
             @Override
             public boolean hasNext() {
-                return it.hasNext();
+                if (it.hasNext()) {
+                    return true;
+                }
+                end();
+                return false;
             }
 
             @Override

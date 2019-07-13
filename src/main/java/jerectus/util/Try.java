@@ -73,6 +73,14 @@ public class Try {
         fn.run();
     }
 
+    public static <T extends AutoCloseable> void withResource(T res, TryConsumer<T> fn) {
+        try (res) {
+            fn.tryAccept(res);
+        } catch (Exception e) {
+            throw asRuntimeException(e, res);
+        }
+    }
+
     public static TryException asRuntimeException(Exception e, Object... params) {
         throw new TryException(e, params);
     }

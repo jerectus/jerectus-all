@@ -66,7 +66,14 @@ public class Template {
     }
 
     public void execute(Object context, Writer out) {
-        writeTo(context, out instanceof PrintWriter ? out : new PrintWriter(out));
+        writeTo(context, new PrintWriter(out) {
+            @Override
+            public void print(char[] s) {
+                if (s != null) {
+                    super.print(s);
+                }
+            }
+        });
         Try.run(() -> out.flush());
     }
 
@@ -103,35 +110,65 @@ public class Template {
     }
 
     public static class Functions {
+        @SuppressWarnings("rawtypes")
+        public static boolean isa(Object x, Object type) {
+            if (x == null || type == null) {
+                return false;
+            }
+            Class<?> t1 = x instanceof Class ? (Class) x : x.getClass();
+            if (type instanceof String) {
+                var className = (String) type;
+                if (className.indexOf(".") == -1) {
+                    className = "java.lang." + className;
+                    try {
+                        type = Class.forName(className);
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+            Class<?> t2 = (Class) type;
+            return t2.isAssignableFrom(t1);
+        }
+
+        public static boolean isNumber(Object x) {
+            return x instanceof Number;
+        }
+
+        public static int toInt(Object x, int other) {
+            if (x instanceof Number) {
+                return ((Number) x).intValue();
+            } else {
+                try {
+                    return Integer.parseInt(x.toString());
+                } catch (Exception e) {
+                    return other;
+                }
+            }
+        }
+
         public static Map<String, Object> copy(Map<String, Object> map) {
             return new LinkedHashMap<>(map);
         }
 
+        public static EachStat each(Object values, String valuesExpr, String varName) {
+            return new EachStat(currentContext(), values, valuesExpr, varName);
+        }
+
         public static void forEach(Object values, String valuesExpr, String varName, Closure fn) {
-            TemplateContext ctx = currentContext();
-            ctx.eachStat = new EachStat(ctx.eachStat, values, valuesExpr, varName, nameof(valuesExpr));
+            var ctx = currentContext();
+            var eachStat = new EachStat(ctx, values, valuesExpr, varName);
             try {
-                for (var it : ctx.eachStat) {
+                for (var it : eachStat) {
                     fn.execute(ctx, it.value, it);
                 }
             } finally {
-                ctx.eachStat = ctx.eachStat.parent;
+                eachStat.end();
             }
         }
 
         public static String nameof(String name) {
-            TemplateContext ctx = currentContext();
-            var p = Pattern.compile("([_a-zA-Z\\$]\\w*)(.*)");
-            var m = p.matcher(name);
-            if (m.matches()) {
-                String rootName = m.group(1);
-                for (var i = ctx.eachStat; i != null; i = i.parent) {
-                    if (i.varName.equals(rootName)) {
-                        return i.baseName + "[" + i.index + "]" + m.group(2);
-                    }
-                }
-            }
-            return name;
+            return currentContext().nameof(name);
         }
     }
 }

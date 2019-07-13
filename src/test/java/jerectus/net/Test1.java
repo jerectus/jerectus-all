@@ -1,4 +1,4 @@
-package jerectus.html;
+package jerectus.net;
 
 import java.util.HashMap;
 

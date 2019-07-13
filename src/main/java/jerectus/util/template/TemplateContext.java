@@ -3,6 +3,7 @@ package jerectus.util.template;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 
 import org.apache.commons.jexl3.JexlContext;
 import org.apache.commons.jexl3.MapContext;
@@ -22,7 +23,7 @@ public class TemplateContext implements JexlContext {
 
     @Override
     public Object get(String name) {
-        return name.startsWith("__") ? attr.get(name) : ctx.get(name);
+        return name.startsWith("__") && attr.containsKey(name) ? attr.get(name) : ctx.get(name);
     }
 
     @Override
@@ -48,5 +49,19 @@ public class TemplateContext implements JexlContext {
             }
             return ctx.get(name);
         }
+    }
+
+    public String nameof(String name) {
+        var p = Pattern.compile("([_a-zA-Z\\$]\\w*)(.*)");
+        var m = p.matcher(name);
+        if (m.matches()) {
+            String rootName = m.group(1);
+            for (var i = eachStat; i != null; i = i.parent) {
+                if (i.varName.equals(rootName)) {
+                    return i.baseName + "[" + i.index + "]" + m.group(2);
+                }
+            }
+        }
+        return name;
     }
 }

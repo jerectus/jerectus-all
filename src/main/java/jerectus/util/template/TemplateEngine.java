@@ -29,6 +29,7 @@ public class TemplateEngine {
     private static final Logger log = Logger.getLogger(TemplateEngine.class);
     private JexlEngine engine;
     private LRUMap<String, Template> templateCache = new LRUMap<>();
+    private Template root;
 
     public TemplateEngine(Consumer<JexlBuilder> fn) {
         var ns = new HashMap<String, Object>();
@@ -38,6 +39,8 @@ public class TemplateEngine {
             fn.accept(jb);
         }
         engine = jb.create();
+        root = new Template(null, engine.createScript(
+                "__for = function(each, fn) { for (var it : each) { fn(it.value, it); } each.end(); };"), null);
     }
 
     public TemplateEngine(Class<? extends Template.Functions> functionClass) {
@@ -144,31 +147,31 @@ public class TemplateEngine {
                 }
 
                 void code(String s) {
-                    sb.append(s);
+                    sb.append(s, " ");
                 }
 
                 void logic(String s) {
                     var p = new PatternMatcher();
                     if (p.matches(s, "if\\b(.*)")) {
-                        sb.append("if(", m.group(1), "){");
+                        sb.append("if(", p.group(1), "){");
                     } else if (p.matches(s, "else-if\\b(.*)")) {
-                        sb.append("}else if(", m.group(1), "){");
+                        sb.append("}else if(", p.group(1), "){");
                     } else if (p.matches(s, "else\\b(.*)")) {
                         sb.append("}else{");
                     } else if (p.matches(s, "end-if\\b(.*)")) {
-                        sb.append("}/*end-if*/");
+                        sb.append("/*end-if*/}");
                     } else if (p.matches(s, "for\\s+((\\w+)\\s*(,\\s*(\\w+))?\\s*(:|\\bin\\b))?\\s*([^;]+)(;.*)?")) {
                         var iter = Sys.ifEmpty(p.group(2), "it");
                         var stat = Sys.ifEmpty(p.group(4), iter + "$");
                         var list = p.group(6).trim();
                         var options = p.group(7) == null ? "" : p.group(7).substring(1).trim();
-                        sb.append("tf:forEach(", list, ", ", quote(list), ", ", quote(iter), ", function(", iter, ", ",
-                                stat, "){");
+                        sb.append("for(var ", stat, " : tf:each(", list, ", ", quote(list), ", ", quote(iter),
+                                ")){var ", iter, "=", stat, ".value;");
                         if (p.matches(options, "delim\\s*=\\s*(\"[^\"]+\"|'[^']+'|`([^`]|\\`)+`)")) {
                             sb.append("if(!", stat, ".first){out.print(", p.group(1), ");}");
                         }
                     } else if (p.matches(s, "end-for\\b(.*)")) {
-                        sb.append("})/*end-for*/;");
+                        sb.append("/*end-for*/}");
                     } else if (p.matches(s, "super\\s*")) {
                         sb.append("super();");
                     } else {
@@ -192,7 +195,7 @@ public class TemplateEngine {
             fn.text(s.substring(pos));
             s = sb.toString();
             log.debug("[ ", path, " ]\n", s);
-            return new Template(parent, engine.createScript(s), path);
+            return new Template(Sys.ifNull(parent, root), engine.createScript(s), path);
         } catch (JexlException e) {
             log(path, sb, e);
             throw e;
