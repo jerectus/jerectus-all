@@ -18,36 +18,53 @@ import jerectus.util.logging.Logger;
 
 public class RequestModelMapper {
     private static final Logger log = Logger.getLogger(RequestModelMapper.class);
+    private static ObjectMapper objectMapper = new ObjectMapper();
+    static {
+        objectMapper.configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true);
+        objectMapper.configure(DeserializationFeature.UNWRAP_SINGLE_VALUE_ARRAYS, true);
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    }
 
-    public static <T> T convert(Request req, Class<T> type) {
+    public static Object convert(Request req, Map<String, String> options) {
         Element elem = new Element();
-        String[] cmd = { null };
         req.getParameterMap().forEach((key, value) -> {
             if (key.startsWith("--")) {
-                cmd[0] = key.substring(2);
+                options.put("-submit", key.substring(2));
+            } else if (key.startsWith("-")) {
+                options.put(key.substring(1), value[0]);
             } else {
                 elem.set(key, value);
             }
         });
-        log.info(req.getRequestURI(), " : ", cmd[0]);
+        log.info(req.getRequestURI(), " : ", options.get("-submit"));
+        return elem.toObject();
+    }
+
+    public static <T> T convert(Object object, Class<T> type) {
+        return objectMapper.convertValue(object, type);
+    }
+
+    public static <T> T convert(Request req, Class<T> type, Map<String, String> options) {
+        Element elem = new Element();
+        req.getParameterMap().forEach((key, value) -> {
+            if (key.startsWith("--")) {
+                options.put("-submit", key.substring(2));
+            } else if (key.startsWith("-")) {
+                options.put(key.substring(1), value[0]);
+            } else {
+                elem.set(key, value);
+            }
+        });
+        log.info(req.getRequestURI(), " : ", options.get("-submit"));
         T model = elem.toObject(type);
         if (model == null) {
             model = Sys.newInstance(type);
             Reflect.invoke(model, "init");
         }
-        if (cmd[0] != null) {
-            Reflect.invoke(model, cmd[0]);
-        }
         return model;
     }
 
     static class Element {
-        private static ObjectMapper objectMapper = new ObjectMapper();
-        static {
-            objectMapper.configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true);
-            objectMapper.configure(DeserializationFeature.UNWRAP_SINGLE_VALUE_ARRAYS, true);
-            objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        }
         private static final int VALUE = -1;
         private static final int MAP = -2;
 

@@ -7,14 +7,14 @@ public class Index {
     @SuppressWarnings("unused")
     private static Logger log = Logger.getLogger(Index.class);
 
-    @Valid(required = true, minLength = 3, maxLength = 10)
+    @Valid(required = true, size = "3..10")
     public String name = "Abe";
 
     @Valid(required = true, expression = "validate1()")
     public int num = 1;
 
-    public boolean validate1() {
-        return num != 2;
+    public String validate1() {
+        return num == 2 ? "数が2です" : "";
     }
 
     public void plus() {

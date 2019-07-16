@@ -1,10 +1,13 @@
 package jerectus.net.http;
 
+import java.util.HashMap;
+
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 
 import jerectus.html.template.HtmlTemplate;
 import jerectus.net.http.RequestModelMapper.MappingException;
+import jerectus.util.Reflect;
 import jerectus.util.Resources;
 import jerectus.util.Sys;
 import jerectus.util.logging.Logger;
@@ -36,11 +39,17 @@ public class HttpHandler extends org.glassfish.grizzly.http.server.HttpHandler {
         var pm = new PatternMatcher();
         if (pm.matches(path, "/(.*)/([^/]+)\\.html")) {
             var type = Class.forName(pm.group(1).replace('/', '.') + "." + Sys.capitalize(pm.group(2)));
+            var options = new HashMap<String, String>();
             Object model = null;
             Throwable ex = null;
             try {
-                model = RequestModelMapper.convert(request, type);
-                Validator.getInstance().validate(model);
+                model = RequestModelMapper.convert(request, options);
+                Object bean = RequestModelMapper.convert(model, type);
+                Validator.getInstance().validate(bean);
+                if (options.containsKey("-submit")) {
+                    Reflect.invoke(bean, options.get("-submit"));
+                }
+                model = bean;
             } catch (MappingException e) {
                 ex = e.getCause();
                 model = e.getValues();

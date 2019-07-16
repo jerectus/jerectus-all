@@ -1,6 +1,5 @@
 package jerectus.validation;
 
-import java.io.IOException;
 import java.lang.annotation.Annotation;
 import java.util.HashMap;
 import java.util.Map;
@@ -32,6 +31,9 @@ public class ValidateException extends RuntimeException {
 
     @Override
     public String toString() {
+        if (property == null || constraint == null) {
+            return "error";
+        }
         var res = new Properties();
         try (var in = bean.getClass().getResourceAsStream("message.properties")) {
             res.load(in);
@@ -42,7 +44,7 @@ public class ValidateException extends RuntimeException {
                 var tmpl = engine.createTemplate(msg);
                 return tmpl.execute(new HashMap<>(Map.of("name", name, "constraint", constraint, "$C", constraint)));
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
         }
 
         return (property != null ? property.getName() + ":" : "") + constraint + ":" + value;

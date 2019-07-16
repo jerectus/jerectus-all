@@ -9,6 +9,8 @@ import jerectus.util.Sys;
 
 public class Validator {
     public <T> void validate(T bean) {
+        if (bean == null)
+            return;
         for (var prop : BeanProperty.getProperties(bean.getClass())) {
             var value = prop.get(bean);
             for (var anno : prop.getAnnotations()) {

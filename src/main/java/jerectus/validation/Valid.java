@@ -3,10 +3,13 @@ package jerectus.validation;
 import java.lang.annotation.Annotation;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import java.util.regex.Pattern;
 
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Valid {
     public boolean required() default false;
+
+    String size() default "";
 
     public int minLength() default 0;
 
@@ -23,6 +26,7 @@ public @interface Valid {
     public interface Fn {
         static void validate(Valid valid, ValidationContext ctx) {
             Required.Fn.validate(newRequired(valid.required()), ctx);
+            Size.Fn.validate(newSize(valid.size()), ctx);
             Length.Fn.validate(newLength(valid.minLength(), valid.maxLength()), ctx);
             OneOf.Fn.validate(newOneOf(valid.oneOf()), ctx);
             Regex.Fn.validate(newRegex(valid.regex()), ctx);
@@ -39,6 +43,33 @@ public @interface Valid {
                 @Override
                 public String toString() {
                     return "@" + annotationType().getName();
+                }
+            };
+        }
+
+        static Size newSize(String size) {
+            var m = Pattern.compile("((\\d+)\\.\\.)?(\\d+|\\*)").matcher(size);
+            var min = m.matches() && m.group(2) != null ? Integer.parseInt(m.group(2)) : 0;
+            var max = m.matches() && !m.group(3).equals("*") ? Integer.parseInt(m.group(3)) : -1;
+            return new Size() {
+                @Override
+                public Class<? extends Annotation> annotationType() {
+                    return Size.class;
+                }
+
+                @Override
+                public int min() {
+                    return min;
+                }
+
+                @Override
+                public int max() {
+                    return max;
+                }
+
+                @Override
+                public String toString() {
+                    return "@" + annotationType().getName() + "(max=" + max() + ", min=" + min() + ")";
                 }
             };
         }

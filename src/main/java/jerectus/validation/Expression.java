@@ -21,8 +21,11 @@ public @interface Expression {
             if (!Sys.isEmpty(ctx.value()) && !expression.value().isEmpty()) {
                 var je = engine.createExpression(expression.value());
                 var jc = new ObjectContext<>(engine, ctx.bean());
-                if (Boolean.FALSE.equals(je.evaluate(jc))) {
+                var result = je.evaluate(jc);
+                if (Boolean.FALSE.equals(result)) {
                     throw new ValidateException(expression, ctx);
+                } else if (result instanceof String && !"".equals(result)) {
+                    throw new ValidateException(ctx.bean().getClass(), (String) result);
                 }
             }
         }

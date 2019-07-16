@@ -1,0 +1,9 @@
+var class = function(s) {
+    return "".class.forName(s);
+}
+var import = function(s) {
+    var a = s.split("\\.");
+    __context__.set(a[size(a) - 1], class(s));
+}
+import("java.lang.Integer");
+System.out.println(Integer.MAX_VALUE);

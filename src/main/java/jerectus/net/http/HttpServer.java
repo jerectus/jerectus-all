@@ -29,7 +29,7 @@ public class HttpServer {
                 var pm = new PatternMatcher();
                 if (pm.matches(path, "/(.*)/([^/]+)\\.html")) {
                     var type = Class.forName(pm.group(1).replace('/', '.') + "." + Sys.capitalize(pm.group(2)));
-                    var model = RequestModelMapper.convert(request, type);
+                    var model = RequestModelMapper.convert(request, type, null);
                     var tmpl = new HtmlTemplate(Resources.get(this, path));
                     tmpl.render(response.getWriter(), model);
                 } else {
